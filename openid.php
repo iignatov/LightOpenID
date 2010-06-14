@@ -189,7 +189,7 @@ class LightOpenID
                         # We ignore it for MyOpenID, as it breaks sreg if using OpenID 2.0
                         $ns = preg_quote('http://specs.openid.net/auth/2.0');
                         if (preg_match('#<Service.*?>(.*)<Type>\s*'.$ns.'.*?</Type>(.*)</Service>#s', $content, $m)
-                            && !preg_match('/myopenid\.com$/i', $this->identity)) {
+                            && !preg_match('/myopenid\.com/i', $this->identity)) {
                             $content = $m[1] . $m[2];
 
                             $content = preg_match('#<URI>(.*)</URI>#', $content, $server);
@@ -256,7 +256,7 @@ class LightOpenID
             $this->version = 2;
             
             # Another hack for myopenid.com...
-            if(preg_match('/myopenid.com/i', $server)) {
+            if(preg_match('/myopenid\.com/i', $server)) {
                 $server = null;
             }
 
