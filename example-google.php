@@ -1,12 +1,12 @@
 <?php
-# Logging in with Google accounts requires special treatment, so this example shows how to do it.
+# Logging in with Google accounts requires setting special identity, so this example shows how to do it.
 require 'openid.php';
 try {
     if(!isset($_GET['openid_mode'])) {
         if(isset($_GET['login'])) {
             $openid = new LightOpenID;
             $openid->identity = 'https://www.google.com/accounts/o8/id';
-            header('Location: ' . $openid->authUrl(true));
+            header('Location: ' . $openid->authUrl());
         }
 ?>
 <form action="?login" method="post">

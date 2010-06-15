@@ -50,7 +50,7 @@ class LightOpenID
          , $required = array()
          , $optional = array();
     private $identity;
-    protected $server, $version, $trustRoot, $aliases;
+    protected $server, $version, $trustRoot, $aliases, $identifier_select = false;
     static protected $ax_to_sreg = array(
         'namePerson/friendly'     => 'nickname',
         'contact/email'           => 'email',
@@ -187,10 +187,11 @@ class LightOpenID
 
                         # OpenID 2
                         # We ignore it for MyOpenID, as it breaks sreg if using OpenID 2.0
-                        $ns = preg_quote('http://specs.openid.net/auth/2.0');
-                        if (preg_match('#<Service.*?>(.*)<Type>\s*'.$ns.'.*?</Type>(.*)</Service>#s', $content, $m)
+                        $ns = preg_quote('http://specs.openid.net/auth/2.0/');
+                        if (preg_match('#<Service.*?>(.*)<Type>\s*'.$ns.'(.*?)\s*</Type>(.*)</Service>#s', $content, $m)
                             && !preg_match('/myopenid\.com/i', $this->identity)) {
-                            $content = $m[1] . $m[2];
+                            $content = $m[1] . $m[3];
+                            if($m[2] == 'server') $this->identifier_select = true;
 
                             $content = preg_match('#<URI>(.*)</URI>#', $content, $server);
                             $content = preg_match('#<LocalID>(.*)</LocalID>#', $content, $delegate);
@@ -381,11 +382,14 @@ class LightOpenID
      * @param String $select_identifier Whether to request OP to select identity for an user in OpenID 2. Does not affect OpenID 1.
      * @throws ErrorException
      */
-    function authUrl($identifier_select = false)
+    function authUrl($identifier_select = null)
     {
         if(!$this->server) $this->Discover($this->identity);
 
         if($this->version == 2) {
+            if($identifier_select === null) {
+                return $this->authUrl_v2($this->identifier_select);
+            }
             return $this->authUrl_v2($identifier_select);
         }
         return $this->authUrl_v1();
