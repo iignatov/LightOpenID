@@ -424,7 +424,14 @@ class LightOpenID
         $server = $this->discover($_GET['openid_identity']);
 
         foreach(explode(',', $_GET['openid_signed']) as $item) {
-            $params['openid.' . $item] = $_GET['openid_' . str_replace('.','_',$item)];
+            # Checking whether magic_quotes_gpc is turned on, because
+            # the function may fail if it is. For example, when fetching
+            # AX namePerson, it might containg an apostrophe, which will be escaped.
+            # In such case, validation would fail, since we'd send different data than OP
+            # wants to verify. stripslashes() should solve that problem, but we can't
+            # use it when magic_quotes is off.
+            $value = $_GET['openid_' . str_replace('.','_',$item)];
+            $params['openid.' . $item] = get_magic_quotes_gpc() ? stripslashes($value) : $value; 
         }
 
         $params['openid.mode'] = 'check_authentication';
