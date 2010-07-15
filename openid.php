@@ -362,9 +362,11 @@ class LightOpenID
         );
         if($this->ax) {
             $params += $this->axParams();
-        } if($this->sreg) {
+        }
+        if($this->sreg) {
             $params += $this->sregParams();
-        } else {
+        }
+        if(!$this->ax && !$this->sreg) {
             # If OP doesn't advertise either SREG, nor AX, let's send them both
             # in worst case we don't get anything in return.
             $params += $this->axParams() + $this->sregParams();
