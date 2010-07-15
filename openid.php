@@ -50,7 +50,8 @@ class LightOpenID
          , $required = array()
          , $optional = array();
     private $identity;
-    protected $server, $version, $trustRoot, $aliases, $identifier_select = false;
+    protected $server, $version, $trustRoot, $aliases, $identifier_select = false
+            , $ax = false, $sreg = false;
     static protected $ax_to_sreg = array(
         'namePerson/friendly'     => 'nickname',
         'contact/email'           => 'email',
@@ -142,9 +143,12 @@ class LightOpenID
         return $url;
     }
 
+    /**
+     * Helper function used to scan for <meta>/<link> tags and extract information
+     * from them
+     */
     protected function htmlTag($content, $tag, $attrName, $attrValue, $valueName)
     {
-        preg_match_all("#<{$tag}[^>]*$attrName=['\"].*?$attrValue.*?['\"][^>]*$valueName=['\"](.+?)['\"][^>]*/?>#i", $content, $matches1);
         preg_match_all("#<{$tag}[^>]*$attrName=['\"].*?$attrValue.*?['\"][^>]*$valueName=['\"](.+?)['\"][^>]*/?>#i", $content, $matches1);
         preg_match_all("#<{$tag}[^>]*$valueName=['\"](.+?)['\"][^>]*$attrName=['\"].*?$attrValue.*?['\"][^>]*/?>#i", $content, $matches2);
 
@@ -188,19 +192,19 @@ class LightOpenID
                         # OpenID 2
                         # We ignore it for MyOpenID, as it breaks sreg if using OpenID 2.0
                         $ns = preg_quote('http://specs.openid.net/auth/2.0/');
-                        if (preg_match('#<Service.*?>(.*)<Type>\s*'.$ns.'(.*?)\s*</Type>(.*)</Service>#s', $content, $m)
-                            && !preg_match('/myopenid\.com/i', $this->identity)) {
-                            $content = $m[1] . $m[3];
+                        if (preg_match('#<Service.*?>(.*)<Type>\s*'.$ns.'(.*?)\s*</Type>(.*)</Service>#s', $content, $m)) {
+                            $content = ' ' . $m[1] . $m[3]; # The space is added, so that strpos doesn't return 0.
                             if($m[2] == 'server') $this->identifier_select = true;
 
-                            $content = preg_match('#<URI>(.*)</URI>#', $content, $server);
-                            $content = preg_match('#<LocalID>(.*)</LocalID>#', $content, $delegate);
+                            preg_match('#<URI>(.*)</URI>#', $content, $server);
+                            preg_match('#<LocalID>(.*)</LocalID>#', $content, $delegate);
                             if(empty($server)) {
                                 return false;
                             }
                             # Does the server advertise support for either AX or SREG?
-                            $this->ax   = preg_match('#<Type>http://openid.net/srv/ax/1.0</Type>#', $content);
-                            $this->sreg = preg_match('#<Type>http://openid.net/sreg/1.0</Type>#', $content);
+                            $this->ax   = (bool) strpos($content, '<Type>http://openid.net/srv/ax/1.0</Type>');
+                            $this->sreg = strpos($content, '<Type>http://openid.net/sreg/1.0</Type>')
+                                       || strpos($content, '<Type>http://openid.net/extensions/sreg/1.1</Type>');
 
                             $server = $server[1];
                             if(isset($delegate[1])) $this->identity = $delegate[1];
@@ -213,15 +217,16 @@ class LightOpenID
                         # OpenID 1.1
                         $ns = preg_quote('http://openid.net/signon/1.1');
                         if(preg_match('#<Service.*?>(.*)<Type>\s*'.$ns.'\s*</Type>(.*)</Service>#s', $content, $m)) {
-                            $content = $m[1] . $m[2];
+                            $content = ' ' . $m[1] . $m[2];
 
-                            $content = preg_match('#<URI>(.*)</URI>#', $content, $server);
-                            $content = preg_match('#<.*?Delegate>(.*)</.*?Delegate>#', $content, $delegate);
+                            preg_match('#<URI>(.*)</URI>#', $content, $server);
+                            preg_match('#<.*?Delegate>(.*)</.*?Delegate>#', $content, $delegate);
                             if(empty($server)) {
                                 return false;
                             }
                             # AX can be used only with OpenID 2.0, so checking only SREG
-                            $this->sreg = preg_match('#<Type>http://openid.net/sreg/1.0</Type>#', $content);
+                            $this->sreg = strpos($content, '<Type>http://openid.net/sreg/1.0</Type>')
+                                       || strpos($content, '<Type>http://openid.net/extensions/sreg/1.1</Type>');
 
                             $server = $server[1];
                             if(isset($delegate[1])) $this->identity = $delegate[1];
@@ -255,11 +260,6 @@ class LightOpenID
             $server   = $this->htmlTag($content, 'link', 'rel', 'openid2.provider', 'href');
             $delegate = $this->htmlTag($content, 'link', 'rel', 'openid2.local_id', 'href');
             $this->version = 2;
-            
-            # Another hack for myopenid.com...
-            if(preg_match('/myopenid\.com/i', $server)) {
-                $server = null;
-            }
 
             if(!$server) {
                 # The same with openid 1.1
@@ -285,6 +285,10 @@ class LightOpenID
     protected function sregParams()
     {
         $params = array();
+        # We always use SREG 1.1, even if the server is advertising only support for 1.0.
+        # That's because it's fully backwards compatibile with 1.0, and some providers
+        # advertise 1.0 even if they accept only 1.1. One such provider is myopenid.com
+        $params['openid.ns.sreg'] = 'http://openid.net/extensions/sreg/1.1';
         if($this->required) {
             $params['openid.sreg.required'] = array();
             foreach($this->required as $required) {
@@ -365,6 +369,7 @@ class LightOpenID
             # in worst case we don't get anything in return.
             $params += $this->axParams() + $this->sregParams();
         }
+
         if($identifier_select) {
             $params['openid.identity'] = $params['openid.claimed_id']
                  = 'http://specs.openid.net/auth/2.0/identifier_select';
