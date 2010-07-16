@@ -2,7 +2,7 @@
 /**
  * This class provides a simple interface for OpenID (1.1 and 2.0) authentication.
  * Supports Yadis discovery.
- * The autentication process is stateless/dumb.
+ * The authentication process is stateless/dumb.
  *
  * Usage:
  * Sign-on with OpenID is a two step process:
@@ -78,12 +78,19 @@ class LightOpenID
     {
         switch($name) {
         case 'identity':
-            if(stripos($value, 'http') === false && $value) $value = 'http://' . $value;
+            if(strlen($value = trim($value))) {
+                if(preg_match('#^xri:/*#i', $value, $m))
+                    $value = substr($value, strlen($m[0]));
+                elseif(strlen("$value") && !preg_match('/^(?:[=@+\$!\(]|https?:)/i', $value))
+                    $value = "http://$value";
+                if(preg_match('#^https?://[^/]+$#i', $value, $m))
+                    $value .= '/';
+            }
             $this->$name = $value;
             break;
         case 'trustRoot':
         case 'realm':
-            $this->trustRoot = $value;
+            $this->trustRoot = trim($value);
         }
     }
 
@@ -282,6 +289,7 @@ class LightOpenID
         }
         throw new ErrorException('Endless redirection!');
     }
+
     protected function sregParams()
     {
         $params = array();
@@ -391,7 +399,7 @@ class LightOpenID
      */
     function authUrl($identifier_select = null)
     {
-        if(!$this->server) $this->Discover($this->identity);
+        if(!$this->server) $this->discover($this->identity);
 
         if($this->version == 2) {
             if($identifier_select === null) {
