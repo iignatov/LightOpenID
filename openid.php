@@ -182,6 +182,10 @@ class LightOpenID
 
         # We'll jump a maximum of 5 times, to avoid endless redirections.
         for($i = 0; $i < 5; $i ++) {
+            # Use xri.net proxy to resolve i-name identities
+            if(!preg_match('#^https?:#', $url))
+                $url = "https://xri.net/$url";
+
             if($yadis) {
                 $headers = explode("\n",$this->request($url, 'HEAD'));
 
@@ -200,6 +204,8 @@ class LightOpenID
                         # We ignore it for MyOpenID, as it breaks sreg if using OpenID 2.0
                         $ns = preg_quote('http://specs.openid.net/auth/2.0/');
                         if (preg_match('#<Service.*?>(.*)<Type>\s*'.$ns.'(.*?)\s*</Type>(.*)</Service>#s', $content, $m)) {
+                            if (preg_match('#<CanonicalID>(.*?)</CanonicalID>#', $content, $canonical))
+                                $this->identity = trim($canonical[1]);
                             $content = ' ' . $m[1] . $m[3]; # The space is added, so that strpos doesn't return 0.
                             if($m[2] == 'server') $this->identifier_select = true;
 
