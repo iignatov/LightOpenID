@@ -49,7 +49,7 @@ class LightOpenID
     public $returnUrl
          , $required = array()
          , $optional = array();
-    private $identity;
+    private $identity, $claimed_id;
     protected $server, $version, $trustRoot, $aliases, $identifier_select = false
             , $ax = false, $sreg = false;
     static protected $ax_to_sreg = array(
@@ -88,7 +88,7 @@ class LightOpenID
                     $value .= '/';
                 }
             }
-            $this->$name = $value;
+            $this->$name = $this->claimed_id = $value;
             break;
         case 'trustRoot':
         case 'realm':
@@ -100,7 +100,10 @@ class LightOpenID
     {
         switch ($name) {
         case 'identity':
-            return $this->$name;
+            # We return claimed_id instead of identity,
+            # because the developer should see the claimed identifier,
+            # i.e. what he set as identity, not the op-local identifier (which is what we verify)
+            return $this->claimed_id;
         case 'trustRoot':
         case 'realm':
             return $this->trustRoot;
@@ -356,8 +359,16 @@ class LightOpenID
 
     protected function authUrl_v1()
     {
+	$returnUrl = $this->returnUrl;
+        # If we have an openid.delegate that is different from our claimed id,
+        # we need to somehow preserve the claimed id between requests.
+        # The simplest way is to just send it along with the return_to url.
+        if($this->identity != $this->claimed_id) {
+            $returnUrl .= (strpos($returnUrl, '?') ? '&' : '?') . 'openid.claimed_id=' . $this->claimed_id;
+        }
+
         $params = array(
-            'openid.return_to'  => $this->returnUrl,
+            'openid.return_to'  => $returnUrl,
             'openid.mode'       => 'checkid_setup',
             'openid.identity'   => $this->identity,
             'openid.trust_root' => $this->trustRoot,
@@ -391,7 +402,8 @@ class LightOpenID
             $params['openid.identity'] = $params['openid.claimed_id']
                  = 'http://specs.openid.net/auth/2.0/identifier_select';
         } else {
-            $params['openid.identity'] = $params['openid.claimed_id'] = $this->identity;
+            $params['openid.identity'] = $this->identity;
+            $params['openid.claimed_id'] = $this->claimed_id;
         }
 
         return $this->build_url(parse_url($this->server)
@@ -424,6 +436,7 @@ class LightOpenID
      */
     function validate()
     {
+        $this->claimed_id = $_GET['openid_claimed_id'];
         $params = array(
             'openid.assoc_handle' => $_GET['openid_assoc_handle'],
             'openid.signed'       => $_GET['openid_signed'],

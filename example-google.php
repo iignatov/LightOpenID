@@ -17,7 +17,7 @@ try {
         echo 'User has canceled authentication!';
     } else {
         $openid = new LightOpenID;
-        echo 'User ' . ($openid->validate() ? $_GET['openid_identity'] . ' has ' : 'has not ') . 'logged in.';
+        echo 'User ' . ($openid->validate() ? $openid->identity . ' has ' : 'has not ') . 'logged in.';
     }
 } catch(ErrorException $e) {
     echo $e->getMessage();
