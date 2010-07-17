@@ -213,7 +213,7 @@ class LightOpenID
                             $content = ' ' . $m[1] . $m[3]; # The space is added, so that strpos doesn't return 0.
                             if ($m[2] == 'server') $this->identifier_select = true;
 
-                            preg_match('#<URI>(.*)</URI>#', $content, $server);
+                            preg_match('#<URI.*?>(.*)</URI>#', $content, $server);
                             preg_match('#<(Local|Canonical)ID>(.*)</\1ID>#', $content, $delegate);
                             if (empty($server)) {
                                 return false;
@@ -236,7 +236,7 @@ class LightOpenID
                         if (preg_match('#<Service.*?>(.*)<Type>\s*'.$ns.'\s*</Type>(.*)</Service>#s', $content, $m)) {
                             $content = ' ' . $m[1] . $m[2];
 
-                            preg_match('#<URI>(.*)</URI>#', $content, $server);
+                            preg_match('#<URI.*?>(.*)</URI>#', $content, $server);
                             preg_match('#<.*?Delegate>(.*)</.*?Delegate>#', $content, $delegate);
                             if (empty($server)) {
                                 return false;
