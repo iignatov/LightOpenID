@@ -15,7 +15,7 @@
  * The provider then sends various parameters via GET, one of them is openid_mode.
  * Step two is verification:
  * <code>
- * if ($_GET['openid_mode']) {
+ * if ($this->data['openid_mode']) {
  *     $openid = new LightOpenID;
  *     echo $openid->validate() ? 'Logged in.' : 'Failed';
  * }
@@ -51,7 +51,7 @@ class LightOpenID
          , $optional = array();
     private $identity, $claimed_id;
     protected $server, $version, $trustRoot, $aliases, $identifier_select = false
-            , $ax = false, $sreg = false;
+            , $ax = false, $sreg = false, $data;
     static protected $ax_to_sreg = array(
         'namePerson/friendly'     => 'nickname',
         'contact/email'           => 'email',
@@ -72,6 +72,8 @@ class LightOpenID
         if (!function_exists('curl_exec')) {
             throw new ErrorException('Curl extension is required.');
         }
+
+        $this->data = $_POST + $_GET; # OPs may send data as POST or GET.
     }
 
     function __set($name, $value)
@@ -436,29 +438,29 @@ class LightOpenID
      */
     function validate()
     {
-        $this->claimed_id = $_GET['openid_claimed_id'];
+        $this->claimed_id = $this->data['openid_claimed_id'];
         $params = array(
-            'openid.assoc_handle' => $_GET['openid_assoc_handle'],
-            'openid.signed'       => $_GET['openid_signed'],
-            'openid.sig'          => $_GET['openid_sig'],
+            'openid.assoc_handle' => $this->data['openid_assoc_handle'],
+            'openid.signed'       => $this->data['openid_signed'],
+            'openid.sig'          => $this->data['openid_sig'],
             );
 
-        if (isset($_GET['openid_op_endpoint'])) {
+        if (isset($this->data['openid_op_endpoint'])) {
             # We're dealing with an OpenID 2.0 server, so let's set an ns
             # Even though we should know location of the endpoint,
             # we still need to verify it by discovery, so $server is not set here
             $params['openid.ns'] = 'http://specs.openid.net/auth/2.0';
         }
-        $server = $this->discover($_GET['openid_identity']);
+        $server = $this->discover($this->data['openid_identity']);
 
-        foreach (explode(',', $_GET['openid_signed']) as $item) {
+        foreach (explode(',', $this->data['openid_signed']) as $item) {
             # Checking whether magic_quotes_gpc is turned on, because
             # the function may fail if it is. For example, when fetching
             # AX namePerson, it might containg an apostrophe, which will be escaped.
             # In such case, validation would fail, since we'd send different data than OP
             # wants to verify. stripslashes() should solve that problem, but we can't
             # use it when magic_quotes is off.
-            $value = $_GET['openid_' . str_replace('.','_',$item)];
+            $value = $this->data['openid_' . str_replace('.','_',$item)];
             $params['openid.' . $item] = get_magic_quotes_gpc() ? stripslashes($value) : $value; 
         }
 
@@ -471,14 +473,14 @@ class LightOpenID
     protected function getAxAttributes()
     {
         $alias = null;
-        if (isset($_GET['openid_ns_ax'])
-            && $_GET['openid_ns_ax'] != 'http://openid.net/srv/ax/1.0'
+        if (isset($this->data['openid_ns_ax'])
+            && $this->data['openid_ns_ax'] != 'http://openid.net/srv/ax/1.0'
         ) { # It's the most likely case, so we'll check it before
             $alias = 'ax';
         } else {
             # 'ax' prefix is either undefined, or points to another extension,
             # so we search for another prefix
-            foreach ($_GET as $key => $val) {
+            foreach ($this->data as $key => $val) {
                 if (substr($key, 0, strlen('openid_ns_')) == 'openid_ns_'
                     && $val == 'http://openid.net/srv/ax/1.0'
                 ) {
@@ -493,19 +495,19 @@ class LightOpenID
             return array();
         }
 
-        foreach ($_GET as $key => $value) {
+        foreach ($this->data as $key => $value) {
             $keyMatch = 'openid_' . $alias . '_value_';
             if (substr($key, 0, strlen($keyMatch)) != $keyMatch) {
                 continue;
             }
             $key = substr($key, strlen($keyMatch));
-            if (!isset($_GET['openid_' . $alias . '_type_' . $key])) {
+            if (!isset($this->data['openid_' . $alias . '_type_' . $key])) {
                 # OP is breaking the spec by returning a field without
                 # associated ns. This shouldn't happen, but it's better
                 # to check, than cause an E_NOTICE.
                 continue;
             }
-            $key = substr($_GET['openid_' . $alias . '_type_' . $key],
+            $key = substr($this->data['openid_' . $alias . '_type_' . $key],
                           strlen('http://axschema.org/'));
             $attributes[$key] = $value;
         }
@@ -516,7 +518,7 @@ class LightOpenID
     {
         $attributes = array();
         $sreg_to_ax = array_flip(self::$ax_to_sreg);
-        foreach ($_GET as $key => $value) {
+        foreach ($this->data as $key => $value) {
             $keyMatch = 'openid_sreg_';
             if (substr($key, 0, strlen($keyMatch)) != $keyMatch) {
                 continue;
@@ -542,8 +544,8 @@ class LightOpenID
     function getAttributes()
     {
         $attributes;
-        if (isset($_GET['openid_ns'])
-            && $_GET['openid_ns'] == 'http://specs.openid.net/auth/2.0'
+        if (isset($this->data['openid_ns'])
+            && $this->data['openid_ns'] == 'http://specs.openid.net/auth/2.0'
         ) { # OpenID 2.0
             # We search for both AX and SREG attributes, with AX taking precedence.
             return $this->getAxAttributes() + $this->getSregAttributes();
