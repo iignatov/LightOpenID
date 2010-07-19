@@ -114,7 +114,7 @@ class LightOpenID
 
     protected function request($url, $method='GET', $params=array())
     {
-        $params = http_build_query($params);
+        $params = http_build_query($params, '', '&');
         $curl = curl_init($url . ($method == 'GET' && $params ? '?' . $params : ''));
         curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($curl, CURLOPT_HEADER, false);
@@ -377,7 +377,7 @@ class LightOpenID
             ) + $this->sregParams();
 
         return $this->build_url(parse_url($this->server)
-                               , array('query' => http_build_query($params)));
+                               , array('query' => http_build_query($params, '', '&')));
     }
 
     protected function authUrl_v2($identifier_select)
@@ -409,7 +409,7 @@ class LightOpenID
         }
 
         return $this->build_url(parse_url($this->server)
-                               , array('query' => http_build_query($params)));
+                               , array('query' => http_build_query($params, '', '&')));
     }
 
     /**
@@ -438,7 +438,7 @@ class LightOpenID
      */
     function validate()
     {
-        $this->claimed_id = $this->data['openid_claimed_id'];
+        $this->claimed_id = isset($this->data['openid_claimed_id'])?$this->data['openid_claimed_id']:$this->data['openid_identity'];
         $params = array(
             'openid.assoc_handle' => $this->data['openid_assoc_handle'],
             'openid.signed'       => $this->data['openid_signed'],
