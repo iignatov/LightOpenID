@@ -348,13 +348,21 @@ class LightOpenID
                 }
             }
             foreach ($this->aliases as $alias => $ns) {
-                $params['openid.ax.type.' . $alias] = $ns;            }
+                $params['openid.ax.type.' . $alias] = $ns;
+            }
             foreach ($counts as $alias => $count) {
                 if ($count == 1) continue;
                 $params['openid.ax.count.' . $alias] = $count;
             }
-            $params['openid.ax.required'] = implode(',', $required);
-            $params['openid.ax.if_avaiable'] = implode(',', $optional);
+
+            # Don't send empty ax.requied and ax.if_available.
+            # Google and possibly other providers refuse to support ax when one of these is empty.
+            if($required) {
+                $params['openid.ax.required'] = implode(',', $required);
+            }
+            if($optional) {
+                $params['openid.ax.if_available'] = implode(',', $optional);
+            }
         }
         return $params;
     }
