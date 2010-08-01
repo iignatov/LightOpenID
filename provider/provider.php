@@ -21,6 +21,7 @@
  * @copyright Copyright (c) 2010, Mewp
  * @license http://www.opensource.org/licenses/mit-license.php MIT
  */
+ini_set('error_log','log');
 abstract class LightOpenIDProvider
 {
     # URL-s to XRDS and server location.
@@ -128,6 +129,7 @@ abstract class LightOpenIDProvider
      */
     protected function delAssoc($handle)
     {
+        if(session_id()) session_destroy();
         session_id($handle);
         session_start();
         session_destroy();
@@ -301,19 +303,11 @@ abstract class LightOpenIDProvider
         ) {
             if(!isset($this->data['openid_mode'])) $this->errorResponse();
             
-            if (!isset($this->data['openid_return_to'], $this->data['openid_realm'])) {
-                $this->errorResponse();
-            }
-            
-            $realm = str_replace('\*', '[^/]', preg_quote($this->data['openid_realm']));
-            if(!preg_match("#^$realm#", $this->data['openid_return_to'])) {
-                $this->errorResponse();
-            }
-            
             switch($this->data['openid_mode'])
             { 
             case 'checkid_immediate':
             case 'checkid_setup':
+                $this->checkRealm();
                 # We support AX xor SREG.
                 $attributes = $this->ax();
                 if(!$attributes) {
@@ -346,6 +340,7 @@ abstract class LightOpenIDProvider
                 $this->associate();
                 break;
             case 'check_authentication':
+                $this->checkRealm();
                 if($this->verify()) {
                     echo "ns:$this->ns\nis_valid:true";
                     if(strpos($this->data['openid_signed'],'invalidate_handle') !== false) {
@@ -361,6 +356,18 @@ abstract class LightOpenIDProvider
             }
         } else {
             $this->xrds();
+        }
+    }
+    
+    protected function checkRealm()
+    {
+        if (!isset($this->data['openid_return_to'], $this->data['openid_realm'])) {
+            $this->errorResponse();
+        }
+        
+        $realm = str_replace('\*', '[^/]', preg_quote($this->data['openid_realm']));
+        if(!preg_match("#^$realm#", $this->data['openid_return_to'])) {
+            $this->errorResponse();
         }
     }
     
@@ -493,7 +500,6 @@ abstract class LightOpenIDProvider
         
         # Computing the signature and checking if it matches.
         $sig = $this->keyValueForm($sig);
-        echo $sig;
         if ($this->data['openid_sig'] != 
             base64_encode(hash_hmac($this->assoc['hash'], $sig, $this->assoc['mac'], true))
         ) {
@@ -699,7 +705,6 @@ abstract class LightOpenIDProvider
         }
         
         # Signing the $params
-        file_put_contents('assoc', $this->keyValueForm($params));
         $sig = hash_hmac($this->assoc['hash'], $this->keyValueForm($params), $this->assoc['mac'], true);
         $req = array(
             'openid.mode'   => 'id_res',
@@ -724,6 +729,8 @@ abstract class LightOpenIDProvider
      */
     protected function responseAttributes($attributes)
     {
+        if(!$attributes) return array();
+        
         $ns = 'http://axschema.org/';
 
         $response = array();
@@ -742,7 +749,7 @@ abstract class LightOpenIDProvider
                 continue;
             }
             
-            $response['sreg' . $this->ax_to_sreg[$name]] = $value;
+            $response['sreg.' . $this->ax_to_sreg[$name]] = $value;
         }
         return $response;
     }

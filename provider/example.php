@@ -10,6 +10,18 @@ class BasicProvider extends LightOpenIDProvider
     public $select_id = true;
     public $login = '';
     public $password = '';
+    
+    function __construct()
+    {
+        parent::__construct();
+        
+        # If we use select_id, we must disable it for identity pages,
+        # so that an RP can discover it and get proper data (i.e. without select_id)
+        if(isset($_GET['id'])) {
+            $this->select_id = false;
+        }
+    }
+    
     function setup($identity, $realm, $assoc_handle, $attributes)
     {
         header('WWW-Authenticate: Basic realm="' . $this->data['openid_realm'] . '"');
@@ -28,7 +40,7 @@ class BasicProvider extends LightOpenIDProvider
             # Returning identity
             # It can be any url that leads here, or to any other place that hosts
             # an XRDS document pointing here.
-            return $this->serverLocation . '?' . $this->login;
+            return $this->serverLocation . '?id=' . $this->login;
         }
         
         return false;
