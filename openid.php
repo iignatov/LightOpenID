@@ -209,7 +209,6 @@ class LightOpenID
                         $content = $this->request($url, 'GET');
 
                         # OpenID 2
-                        # We ignore it for MyOpenID, as it breaks sreg if using OpenID 2.0
                         $ns = preg_quote('http://specs.openid.net/auth/2.0/');
                         if (preg_match('#<Service.*?>(.*)<Type>\s*'.$ns.'(.*?)\s*</Type>(.*)</Service>#s', $content, $m)) {
                             $content = ' ' . $m[1] . $m[3]; # The space is added, so that strpos doesn't return 0.
@@ -328,6 +327,7 @@ class LightOpenID
         }
         return $params;
     }
+    
     protected function axParams()
     {
         $params = array();
@@ -478,6 +478,7 @@ class LightOpenID
 
         return preg_match('/is_valid\s*:\s*true/i', $response);
     }
+    
     protected function getAxAttributes()
     {
         $alias = null;
@@ -503,6 +504,7 @@ class LightOpenID
             return array();
         }
 
+        $attributes = array();
         foreach ($this->data as $key => $value) {
             $keyMatch = 'openid_' . $alias . '_value_';
             if (substr($key, 0, strlen($keyMatch)) != $keyMatch) {
@@ -522,6 +524,7 @@ class LightOpenID
         # Found the AX attributes, so no need to scan for SREG.
         return $attributes;
     }
+    
     protected function getSregAttributes()
     {
         $attributes = array();
@@ -540,6 +543,7 @@ class LightOpenID
         }
         return $attributes;
     }
+    
     /**
      * Gets AX/SREG attributes provided by OP. should be used only after successful validaton.
      * Note that it does not guarantee that any of the required/optional parameters will be present,
@@ -551,7 +555,6 @@ class LightOpenID
      */
     function getAttributes()
     {
-        $attributes;
         if (isset($this->data['openid_ns'])
             && $this->data['openid_ns'] == 'http://specs.openid.net/auth/2.0'
         ) { # OpenID 2.0
