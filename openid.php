@@ -452,6 +452,12 @@ class LightOpenID
             'openid.signed'       => $this->data['openid_signed'],
             'openid.sig'          => $this->data['openid_sig'],
             );
+        
+        if ($this->data['openid_return_to'] != $this->returnUrl) {
+            # The return_to url must match the url of current request.
+            # I'm assuing that noone will set the returnUrl to something that doesn't make sense.
+            return false;
+        }
 
         if (isset($this->data['openid_op_endpoint'])) {
             # We're dealing with an OpenID 2.0 server, so let's set an ns
