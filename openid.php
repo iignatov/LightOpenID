@@ -24,7 +24,7 @@
  * Optionally, you can set $returnUrl and $realm (or $trustRoot, which is an alias).
  * The default values for those are:
  * $openid->realm     = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
- * $openid->returnUrl = $openid->realm . $_SERVER['REQUEST_URI'];
+ * $openid->returnUrl = $openid->realm . $_SERVER['REQUEST_URI']; # without the query part, if present
  * If you don't know their meaning, refer to any openid tutorial, or specification. Or just guess.
  *
  * AX and SREG extensions are supported.
@@ -67,7 +67,9 @@ class LightOpenID
     function __construct()
     {
         $this->trustRoot = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
-        $this->returnUrl = $this->trustRoot . $_SERVER['REQUEST_URI'];
+        $uri = $_SERVER['REQUEST_URI'];
+        $uri = strpos($uri, '?') ? substr($uri, 0, strpos($uri, '?')) : $uri;
+        $this->returnUrl = $this->trustRoot . $uri;
 
         if (!function_exists('curl_exec')) {
             throw new ErrorException('Curl extension is required.');
