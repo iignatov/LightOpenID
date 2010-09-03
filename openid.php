@@ -39,7 +39,7 @@
  * To get the values, use $openid->getAttributes().
  *
  *
- * The library depends on curl, and requires PHP 5.
+ * The library requires PHP 5.
  * @author Mewp
  * @copyright Copyright (c) 2010, Mewp
  * @license http://www.opensource.org/licenses/mit-license.php MIT
@@ -70,10 +70,6 @@ class LightOpenID
         $uri = $_SERVER['REQUEST_URI'];
         $uri = strpos($uri, '?') ? substr($uri, 0, strpos($uri, '?')) : $uri;
         $this->returnUrl = $this->trustRoot . $uri;
-
-        if (!function_exists('curl_exec')) {
-            throw new ErrorException('Curl extension is required.');
-        }
 
         $this->data = $_POST + $_GET; # OPs may send data as POST or GET.
     }
@@ -117,27 +113,30 @@ class LightOpenID
     protected function request($url, $method='GET', $params=array())
     {
         $params = http_build_query($params, '', '&');
-        $curl = curl_init($url . ($method == 'GET' && $params ? '?' . $params : ''));
-        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($curl, CURLOPT_HEADER, false);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        if ($method == 'POST') {
-            curl_setopt($curl, CURLOPT_POST, true);
-            curl_setopt($curl, CURLOPT_POSTFIELDS, $params);
-        } elseif ($method == 'HEAD') {
-            curl_setopt($curl, CURLOPT_HEADER, true);
-            curl_setopt($curl, CURLOPT_NOBODY, true);
-        } else {
-            curl_setopt($curl, CURLOPT_HTTPGET, true);
+        switch($method) {
+          case 'GET':
+              $opts = array (
+                  'http' => array (
+                      'method' => 'GET',
+                  )
+              );
+              $url = $url . ($params ? '?' . $params : '');
+          break;
+          case 'POST':
+              $opts = array (
+                  'http' => array (
+                      'method' => 'POST',
+                      'content' => $params,
+                  )
+              );
+          break;
+          case 'HEAD':
+            $url = $url . ($params ? '?' . $params : '');
+            return get_headers ($url);
         }
-        $response = curl_exec($curl);
+        $context = stream_context_create ($opts);
 
-        if (curl_errno($curl)) {
-            throw new ErrorException(curl_error($curl), curl_errno($curl));
-        }
-
-        return $response;
+        return file_get_contents($url, false, $context);
     }
 
     protected function build_url($url, $parts)
@@ -197,7 +196,7 @@ class LightOpenID
         # We'll jump a maximum of 5 times, to avoid endless redirections.
         for ($i = 0; $i < 5; $i ++) {
             if ($yadis) {
-                $headers = explode("\n",$this->request($url, 'HEAD'));
+                $headers = $this->request($url, 'HEAD');
 
                 $next = false;
                 foreach ($headers as $header) {
