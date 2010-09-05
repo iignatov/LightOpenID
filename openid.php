@@ -39,7 +39,7 @@
  * To get the values, use $openid->getAttributes().
  *
  *
- * The library requires PHP 5.
+ * The library requires PHP 5 with http/https stream wrappers enabled..
  * @author Mewp
  * @copyright Copyright (c) 2010, Mewp
  * @license http://www.opensource.org/licenses/mit-license.php MIT
@@ -114,25 +114,41 @@ class LightOpenID
     {
         $params = http_build_query($params, '', '&');
         switch($method) {
-          case 'GET':
-              $opts = array (
-                  'http' => array (
-                      'method' => 'GET',
-                  )
-              );
-              $url = $url . ($params ? '?' . $params : '');
-          break;
-          case 'POST':
-              $opts = array (
-                  'http' => array (
-                      'method' => 'POST',
-                      'content' => $params,
-                  )
-              );
-          break;
-          case 'HEAD':
+        case 'GET':
+            $opts = array(
+                'http' => array(
+                    'method' => 'GET',
+                )
+            );
             $url = $url . ($params ? '?' . $params : '');
-            return get_headers ($url);
+            break;
+        case 'POST':
+            $opts = array(
+                'http' => array(
+                    'method' => 'POST',
+                    'header'  => 'Content-type: application/x-www-form-urlencoded',
+                    'content' => $params,
+                )
+            );
+            break;
+        case 'HEAD':
+            # We want to send a HEAD request,
+            # but since get_headers doesn't accept $context parameter,
+            # we have to change the defaults.
+            $default = stream_context_get_options(stream_context_get_default());
+            stream_context_get_default(
+                array('http' => array(
+                    'method' => 'HEAD',
+                    'header' => 'Accept: application/xrds+xml, */*',
+                ))
+            );
+
+            $url = $url . ($params ? '?' . $params : '');
+            $headers = get_headers ($url, 1);
+
+            # And restore them.
+            stream_context_get_default($default);
+            return $headers;
         }
         $context = stream_context_create ($opts);
 
@@ -199,13 +215,13 @@ class LightOpenID
                 $headers = $this->request($url, 'HEAD');
 
                 $next = false;
-                foreach ($headers as $header) {
-                    if (preg_match('#X-XRDS-Location\s*:\s*(.*)#', $header, $m)) {
-                        $url = $this->build_url(parse_url($url), parse_url(trim($m[1])));
+                    if (isset($headers['X-XRDS-Location'])) {
+                        $url = $this->build_url(parse_url($url), parse_url(trim($headers['X-XRDS-Location'])));
                         $next = true;
                     }
 
-                    if (preg_match('#Content-Type\s*:\s*application/xrds\+xml#i', $header)) {
+                    if (isset($headers['Content-Type'])
+                        && strpos($headers['Content-Type'], 'application/xrds+xml') !== false) {
                         # Found an XRDS document, now let's find the server, and optionally delegate.
                         $content = $this->request($url, 'GET');
 
@@ -261,7 +277,6 @@ class LightOpenID
                         $content = null;
                         break;
                     }
-                }
                 if ($next) continue;
 
                 # There are no relevant information in headers, so we search the body.
@@ -528,7 +543,6 @@ class LightOpenID
                           strlen('http://axschema.org/'));
             $attributes[$key] = $value;
         }
-        # Found the AX attributes, so no need to scan for SREG.
         return $attributes;
     }
     
