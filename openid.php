@@ -28,7 +28,7 @@
  * If you don't know their meaning, refer to any openid tutorial, or specification. Or just guess.
  *
  * AX and SREG extensions are supported.
- * To use them, specify $openid->required and/or $openid->optional.
+ * To use them, specify $openid->required and/or $openid->optional before calling $openid->authUrl().
  * These are arrays, with values being AX schema paths (the 'path' part of the URL).
  * For example:
  *   $openid->required = array('namePerson/friendly', 'contact/email');
