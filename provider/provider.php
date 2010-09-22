@@ -254,7 +254,7 @@ abstract class LightOpenIDProvider
         }
         
         if (isset($_GET['xrds'])
-            || strpos($_SERVER['HTTP_ACCEPT'], 'application/xrds+xml') !== false
+            || (isset($_SERVER['HTTP_ACCEPT']) &&  strpos($_SERVER['HTTP_ACCEPT'], 'application/xrds+xml') !== false)
         ) {
             header('Content-Type: application/xrds+xml');
             echo $this->xrdsContent();
