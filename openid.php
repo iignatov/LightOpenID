@@ -118,6 +118,7 @@ class LightOpenID
             $opts = array(
                 'http' => array(
                     'method' => 'GET',
+                    'header' => 'Accept: application/xrds+xml, */*',
                 )
             );
             $url = $url . ($params ? '?' . $params : '');
