@@ -119,6 +119,7 @@ class LightOpenID
                 'http' => array(
                     'method' => 'GET',
                     'header' => 'Accept: application/xrds+xml, */*',
+                    'ignore_errors' => true,
                 )
             );
             $url = $url . ($params ? '?' . $params : '');
@@ -129,6 +130,7 @@ class LightOpenID
                     'method' => 'POST',
                     'header'  => 'Content-type: application/x-www-form-urlencoded',
                     'content' => $params,
+                    'ignore_errors' => true,
                 )
             );
             break;
@@ -141,11 +143,20 @@ class LightOpenID
                 array('http' => array(
                     'method' => 'HEAD',
                     'header' => 'Accept: application/xrds+xml, */*',
+                    'ignore_errors' => true,
                 ))
             );
 
             $url = $url . ($params ? '?' . $params : '');
-            $headers = get_headers ($url, 1);
+            $headers_tmp = get_headers ($url);
+            
+            # Parsing headers.
+            $headers = array();
+            foreach($headers_tmp as $header) {
+                $pos = strpos($header,':');
+                $name = strtolower(trim(substr($header, 0, $pos)));
+                $headers[$name] = trim(substr($header, $pos+1));
+            }
 
             # And restore them.
             stream_context_get_default($default);
@@ -216,13 +227,13 @@ class LightOpenID
                 $headers = $this->request($url, 'HEAD');
 
                 $next = false;
-                    if (isset($headers['X-XRDS-Location'])) {
-                        $url = $this->build_url(parse_url($url), parse_url(trim($headers['X-XRDS-Location'])));
+                    if (isset($headers['x-xrds-Location'])) {
+                        $url = $this->build_url(parse_url($url), parse_url(trim($headers['x-xrds-Location'])));
                         $next = true;
                     }
 
-                    if (isset($headers['Content-Type'])
-                        && strpos($headers['Content-Type'], 'application/xrds+xml') !== false) {
+                    if (isset($headers['content-type'])
+                        && strpos($headers['content-type'], 'application/xrds+xml') !== false) {
                         # Found an XRDS document, now let's find the server, and optionally delegate.
                         $content = $this->request($url, 'GET');
 
@@ -470,18 +481,24 @@ class LightOpenID
             'openid.sig'          => $this->data['openid_sig'],
             );
         
+        if (isset($this->data['openid_op_endpoint'])) {
+            # We're dealing with an OpenID 2.0 server, so let's set an ns
+            # Even though we should know location of the endpoint,
+            # we still need to verify it by discovery, so $server is not set here
+            $params['openid.ns'] = 'http://specs.openid.net/auth/2.0';
+        } elseif(isset($this->data['openid_claimed_id'])) {
+            # If it's an OpenID 1 provider, and we've got claimed_id,
+            # we have to append it to the returnUrl, like authUrl_v1 does.
+            $this->returnUrl .= (strpos($this->returnUrl, '?') ? '&' : '?')
+                             .  'openid.claimed_id=' . $this->claimed_id;
+        }
+        
         if ($this->data['openid_return_to'] != $this->returnUrl) {
             # The return_to url must match the url of current request.
             # I'm assuing that noone will set the returnUrl to something that doesn't make sense.
             return false;
         }
 
-        if (isset($this->data['openid_op_endpoint'])) {
-            # We're dealing with an OpenID 2.0 server, so let's set an ns
-            # Even though we should know location of the endpoint,
-            # we still need to verify it by discovery, so $server is not set here
-            $params['openid.ns'] = 'http://specs.openid.net/auth/2.0';
-        }
         $server = $this->discover($this->data['openid_identity']);
 
         foreach (explode(',', $this->data['openid_signed']) as $item) {
