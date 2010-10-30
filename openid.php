@@ -109,7 +109,7 @@ class LightOpenID
             return $this->trustRoot;
         }
     }
-    
+
     /**
      * Checks if the server specified in the url exists.
      *
@@ -123,21 +123,20 @@ class LightOpenID
         } else {
             $server = @parse_url($url, PHP_URL_HOST);
         }
-        
+
         if (!$server) {
             return false;
         }
-        
+
         return !!gethostbynamel($server);
     }
-
 
     protected function request($url, $method='GET', $params=array())
     {
         if(!$this->hostExists($url)) {
             throw new ErrorException('Invalid request.');
         }
-        
+
         $params = http_build_query($params, '', '&');
         switch($method) {
         case 'GET':
@@ -178,14 +177,14 @@ class LightOpenID
             if(!$headers_tmp) {
                 return array();
             }
-            
+
             # Parsing headers.
             $headers = array();
             foreach($headers_tmp as $header) {
                 $pos = strpos($header,':');
                 $name = strtolower(trim(substr($header, 0, $pos)));
                 $headers[$name] = trim(substr($header, $pos+1));
-                
+
                 # Following possible redirections. The point is just to have
                 # claimed_id change with them, because get_headers() will
                 # follow redirections automatically.
@@ -278,54 +277,59 @@ class LightOpenID
                     }
 
                     if (isset($headers['content-type'])
-                        && strpos($headers['content-type'], 'application/xrds+xml') !== false) {
+                        && strpos($headers['content-type'], 'application/xrds+xml') !== false
+                    ) {
                         # Found an XRDS document, now let's find the server, and optionally delegate.
                         $content = $this->request($url, 'GET');
 
-                        # OpenID 2
-                        $ns = preg_quote('http://specs.openid.net/auth/2.0/');
-                        if (preg_match('#<Service.*?>(.*)<Type>\s*'.$ns.'(.*?)\s*</Type>(.*)</Service>#s', $content, $m)) {
-                            $content = ' ' . $m[1] . $m[3]; # The space is added, so that strpos doesn't return 0.
-                            if ($m[2] == 'server') $this->identifier_select = true;
+                        preg_match_all('#<Service.*?>(.*?)</Service>#s', $content, $m);
+                        foreach($m[1] as $content) {
+                            $content = ' ' . $content; # The space is added, so that strpos doesn't return 0.
 
-                            preg_match('#<URI.*?>(.*)</URI>#', $content, $server);
-                            preg_match('#<(Local|Canonical)ID>(.*)</\1ID>#', $content, $delegate);
-                            if (empty($server)) {
-                                return false;
+                            # OpenID 2
+                            $ns = preg_quote('http://specs.openid.net/auth/2.0/');
+                            if(preg_match('#<Type>\s*'.$ns.'(.*?)\s*</Type>#s', $content, $type)) {
+                                if ($type[1] == 'server') $this->identifier_select = true;
+
+                                preg_match('#<URI.*?>(.*)</URI>#', $content, $server);
+                                preg_match('#<(Local|Canonical)ID>(.*)</\1ID>#', $content, $delegate);
+                                if (empty($server)) {
+                                    return false;
+                                }
+                                # Does the server advertise support for either AX or SREG?
+                                $this->ax   = (bool) strpos($content, '<Type>http://openid.net/srv/ax/1.0</Type>');
+                                $this->sreg = strpos($content, '<Type>http://openid.net/sreg/1.0</Type>')
+                                           || strpos($content, '<Type>http://openid.net/extensions/sreg/1.1</Type>');
+
+                                $server = $server[1];
+                                if (isset($delegate[2])) $this->identity = trim($delegate[2]);
+                                $this->version = 2;
+
+                                $this->server = $server;
+                                return $server;
                             }
-                            # Does the server advertise support for either AX or SREG?
-                            $this->ax   = (bool) strpos($content, '<Type>http://openid.net/srv/ax/1.0</Type>');
-                            $this->sreg = strpos($content, '<Type>http://openid.net/sreg/1.0</Type>')
-                                       || strpos($content, '<Type>http://openid.net/extensions/sreg/1.1</Type>');
 
-                            $server = $server[1];
-                            if (isset($delegate[2])) $this->identity = trim($delegate[2]);
-                            $this->version = 2;
+                            # OpenID 1.1
+                            $ns = preg_quote('http://openid.net/signon/1.1');
+                            if (preg_match('#<Type>\s*'.$ns.'\s*</Type>#s', $content, $content)) {
+                                $content = ' ' . $m[1];
 
-                            $this->server = $server;
-                            return $server;
-                        }
+                                preg_match('#<URI.*?>(.*)</URI>#', $content, $server);
+                                preg_match('#<.*?Delegate>(.*)</.*?Delegate>#', $content, $delegate);
+                                if (empty($server)) {
+                                    return false;
+                                }
+                                # AX can be used only with OpenID 2.0, so checking only SREG
+                                $this->sreg = strpos($content, '<Type>http://openid.net/sreg/1.0</Type>')
+                                           || strpos($content, '<Type>http://openid.net/extensions/sreg/1.1</Type>');
 
-                        # OpenID 1.1
-                        $ns = preg_quote('http://openid.net/signon/1.1');
-                        if (preg_match('#<Service.*?>(.*)<Type>\s*'.$ns.'\s*</Type>(.*)</Service>#s', $content, $m)) {
-                            $content = ' ' . $m[1] . $m[2];
+                                $server = $server[1];
+                                if (isset($delegate[1])) $this->identity = $delegate[1];
+                                $this->version = 1;
 
-                            preg_match('#<URI.*?>(.*)</URI>#', $content, $server);
-                            preg_match('#<.*?Delegate>(.*)</.*?Delegate>#', $content, $delegate);
-                            if (empty($server)) {
-                                return false;
+                                $this->server = $server;
+                                return $server;
                             }
-                            # AX can be used only with OpenID 2.0, so checking only SREG
-                            $this->sreg = strpos($content, '<Type>http://openid.net/sreg/1.0</Type>')
-                                       || strpos($content, '<Type>http://openid.net/extensions/sreg/1.1</Type>');
-
-                            $server = $server[1];
-                            if (isset($delegate[1])) $this->identity = $delegate[1];
-                            $this->version = 1;
-
-                            $this->server = $server;
-                            return $server;
                         }
 
                         $next = true;
@@ -338,7 +342,7 @@ class LightOpenID
 
                 # There are no relevant information in headers, so we search the body.
                 $content = $this->request($url, 'GET');
-                if ($location = $this->htmlTag($content, 'meta', 'http-equiv', 'X-XRDS-Location', 'value')) {
+                if ($location = $this->htmlTag($content, 'meta', 'http-equiv', 'X-XRDS-Location', 'content')) {
                     $url = $this->build_url(parse_url($url), parse_url($location));
                     continue;
                 }
@@ -400,7 +404,7 @@ class LightOpenID
         }
         return $params;
     }
-    
+
     protected function axParams()
     {
         $params = array();
@@ -525,7 +529,7 @@ class LightOpenID
             'openid.signed'       => $this->data['openid_signed'],
             'openid.sig'          => $this->data['openid_sig'],
             );
-        
+
         if (isset($this->data['openid_ns'])) {
             # We're dealing with an OpenID 2.0 server, so let's set an ns
             # Even though we should know location of the endpoint,
@@ -537,7 +541,7 @@ class LightOpenID
             $this->returnUrl .= (strpos($this->returnUrl, '?') ? '&' : '?')
                              .  'openid.claimed_id=' . $this->claimed_id;
         }
-        
+
         if ($this->data['openid_return_to'] != $this->returnUrl) {
             # The return_to url must match the url of current request.
             # I'm assuing that noone will set the returnUrl to something that doesn't make sense.
@@ -554,7 +558,8 @@ class LightOpenID
             # wants to verify. stripslashes() should solve that problem, but we can't
             # use it when magic_quotes is off.
             $value = $this->data['openid_' . str_replace('.','_',$item)];
-            $params['openid.' . $item] = get_magic_quotes_gpc() ? stripslashes($value) : $value; 
+            $params['openid.' . $item] = get_magic_quotes_gpc() ? stripslashes($value) : $value;
+
         }
 
         $params['openid.mode'] = 'check_authentication';
@@ -563,7 +568,7 @@ class LightOpenID
 
         return preg_match('/is_valid\s*:\s*true/i', $response);
     }
-    
+
     protected function getAxAttributes()
     {
         $alias = null;
@@ -608,7 +613,7 @@ class LightOpenID
         }
         return $attributes;
     }
-    
+
     protected function getSregAttributes()
     {
         $attributes = array();
@@ -627,7 +632,7 @@ class LightOpenID
         }
         return $attributes;
     }
-    
+
     /**
      * Gets AX/SREG attributes provided by OP. should be used only after successful validaton.
      * Note that it does not guarantee that any of the required/optional parameters will be present,
