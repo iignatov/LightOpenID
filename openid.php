@@ -288,7 +288,7 @@ class LightOpenID
 
                             # OpenID 2
                             $ns = preg_quote('http://specs.openid.net/auth/2.0/');
-                            if(preg_match('#<Type>\s*'.$ns.'(.*?)\s*</Type>#s', $content, $type)) {
+                            if(preg_match('#<Type>\s*'.$ns.'(server|signon)\s*</Type>#s', $content, $type)) {
                                 if ($type[1] == 'server') $this->identifier_select = true;
 
                                 preg_match('#<URI.*?>(.*)</URI>#', $content, $server);
@@ -311,8 +311,7 @@ class LightOpenID
 
                             # OpenID 1.1
                             $ns = preg_quote('http://openid.net/signon/1.1');
-                            if (preg_match('#<Type>\s*'.$ns.'\s*</Type>#s', $content, $content)) {
-                                $content = ' ' . $m[1];
+                            if (preg_match('#<Type>\s*'.$ns.'\s*</Type>#s', $content)) {
 
                                 preg_match('#<URI.*?>(.*)</URI>#', $content, $server);
                                 preg_match('#<.*?Delegate>(.*)</.*?Delegate>#', $content, $delegate);
