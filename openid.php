@@ -39,7 +39,7 @@
  * To get the values, use $openid->getAttributes().
  *
  *
- * The library requires PHP >= 5.1.2 with http/https stream wrappers enabled..
+ * The library requires PHP >= 5.1.2 with curl or http/https stream wrappers enabled..
  * @author Mewp
  * @copyright Copyright (c) 2010, Mewp
  * @license http://www.opensource.org/licenses/mit-license.php MIT
@@ -131,7 +131,51 @@ class LightOpenID
         return !!gethostbynamel($server);
     }
 
-    protected function request($url, $method='GET', $params=array())
+    protected function request_curl($url, $method='GET', $params=array())
+    {
+        $params = http_build_query($params, '', '&');
+        $curl = curl_init($url . ($method == 'GET' && $params ? '?' . $params : ''));
+        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($curl, CURLOPT_HEADER, false);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, array('Accept: application/xrds+xml, */*'));
+        if ($method == 'POST') {
+            curl_setopt($curl, CURLOPT_POST, true);
+            curl_setopt($curl, CURLOPT_POSTFIELDS, $params);
+        } elseif ($method == 'HEAD') {
+            curl_setopt($curl, CURLOPT_HEADER, true);
+            curl_setopt($curl, CURLOPT_NOBODY, true);
+        } else {
+            curl_setopt($curl, CURLOPT_HTTPGET, true);
+        }
+        $response = curl_exec($curl);
+
+        if($method == 'HEAD') {
+            $headers = array();
+            foreach(explode("\n", $response) as $header) {
+                $pos = strpos($header,':');
+                $name = strtolower(trim(substr($header, 0, $pos)));
+                $headers[$name] = trim(substr($header, $pos+1));
+            }
+
+            # Updating claimed_id in case of redirections.
+            $effective_url = curl_getinfo($curl, CURLINFO_EFFECTIVE_URL);
+            if($effective_url != $url) {
+                $this->claimed_id = $effective_url;
+            }
+
+            return $headers;
+        }
+
+        if (curl_errno($curl)) {
+            throw new ErrorException(curl_error($curl), curl_errno($curl));
+        }
+
+        return $response;
+    }
+
+    protected function request_streams($url, $method='GET', $params=array())
     {
         if(!$this->hostExists($url)) {
             throw new ErrorException('Invalid request.');
@@ -209,6 +253,14 @@ class LightOpenID
         $context = stream_context_create ($opts);
 
         return file_get_contents($url, false, $context);
+    }
+
+    protected function request($url, $method='GET', $params=array())
+    {
+        if(function_exists('curl_init') && !ini_get('safe_mode')) {
+            return $this->request_curl($url, $method, $params);
+        }
+        return $this->request_streams($url, $method, $params);
     }
 
     protected function build_url($url, $parts)
