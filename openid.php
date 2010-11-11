@@ -48,7 +48,9 @@ class LightOpenID
 {
     public $returnUrl
          , $required = array()
-         , $optional = array();
+         , $optional = array()
+         , $verify_perr = null
+         , $capath = null;
     private $identity, $claimed_id;
     protected $server, $version, $trustRoot, $aliases, $identifier_select = false
             , $ax = false, $sreg = false, $data;
@@ -140,6 +142,14 @@ class LightOpenID
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HTTPHEADER, array('Accept: application/xrds+xml, */*'));
+
+        if($this->verify_perr !== null) {
+            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, $this->verify_peer);
+            if($this->capath) {
+                curl_setopt($curl, CURLOPT_CAPATH, $this->capath);
+            }
+        }
+
         if ($method == 'POST') {
             curl_setopt($curl, CURLOPT_POST, true);
             curl_setopt($curl, CURLOPT_POSTFIELDS, $params);
@@ -162,7 +172,7 @@ class LightOpenID
             # Updating claimed_id in case of redirections.
             $effective_url = curl_getinfo($curl, CURLINFO_EFFECTIVE_URL);
             if($effective_url != $url) {
-                $this->claimed_id = $effective_url;
+                $this->identity = $this->claimed_id = $effective_url;
             }
 
             return $headers;
@@ -236,9 +246,10 @@ class LightOpenID
                 # If any known provider uses them, file a bug report.
                 if($name == 'location') {
                     if(strpos($headers[$name], 'http') === 0) {
-                        $this->claimed_id = $headers[$name];
+                        $this->identity = $this->claimed_id = $headers[$name];
                     } elseif($headers[$name][0] == '/') {
                         $parsed_url = parse_url($this->claimed_id);
+                        $this->identity =
                         $this->claimed_id = $parsed_url['scheme'] . '://'
                                           . $parsed_url['host']
                                           . $headers[$name];
@@ -250,6 +261,14 @@ class LightOpenID
             stream_context_get_default($default);
             return $headers;
         }
+
+        if($this->verify_peer) {
+            $opts += array('ssl' => array(
+                'verify_peer' => true,
+                'capath'      => $this->capath,
+            ));
+        }
+
         $context = stream_context_create ($opts);
 
         return file_get_contents($url, false, $context);
