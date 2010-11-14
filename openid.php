@@ -50,7 +50,8 @@ class LightOpenID
          , $required = array()
          , $optional = array()
          , $verify_peer = null
-         , $capath = null;
+         , $capath = null
+         , $cainfo = null;
     private $identity, $claimed_id;
     protected $server, $version, $trustRoot, $aliases, $identifier_select = false
             , $ax = false, $sreg = false, $data;
@@ -147,6 +148,10 @@ class LightOpenID
             curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, $this->verify_peer);
             if($this->capath) {
                 curl_setopt($curl, CURLOPT_CAPATH, $this->capath);
+            }
+
+            if($this->cainfo) {
+                curl_setopt($curl, CURLOPT_CAINFO, $this->cainfo);
             }
         }
 
@@ -266,6 +271,7 @@ class LightOpenID
             $opts += array('ssl' => array(
                 'verify_peer' => true,
                 'capath'      => $this->capath,
+                'cafile'      => $this->cainfo,
             ));
         }
 
@@ -297,7 +303,7 @@ class LightOpenID
              . (empty($url['port'])?'':":{$url['port']}")
              . (empty($url['path'])?'':$url['path'])
              . (empty($url['query'])?'':"?{$url['query']}")
-             . (empty($url['fragment'])?'':":{$url['fragment']}");
+             . (empty($url['fragment'])?'':"#{$url['fragment']}");
         return $url;
     }
 
