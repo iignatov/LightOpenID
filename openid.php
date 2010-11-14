@@ -49,7 +49,7 @@ class LightOpenID
     public $returnUrl
          , $required = array()
          , $optional = array()
-         , $verify_perr = null
+         , $verify_peer = null
          , $capath = null;
     private $identity, $claimed_id;
     protected $server, $version, $trustRoot, $aliases, $identifier_select = false
@@ -143,7 +143,7 @@ class LightOpenID
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HTTPHEADER, array('Accept: application/xrds+xml, */*'));
 
-        if($this->verify_perr !== null) {
+        if($this->verify_peer !== null) {
             curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, $this->verify_peer);
             if($this->capath) {
                 curl_setopt($curl, CURLOPT_CAPATH, $this->capath);
