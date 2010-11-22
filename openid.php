@@ -110,6 +110,8 @@ class LightOpenID
         case 'trustRoot':
         case 'realm':
             return $this->trustRoot;
+        case 'mode':
+            return empty($this->data['openid_mode']) ? null : $this->data['openid_mode'];
         }
     }
 
