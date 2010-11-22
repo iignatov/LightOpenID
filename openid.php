@@ -24,7 +24,7 @@
  * Optionally, you can set $returnUrl and $realm (or $trustRoot, which is an alias).
  * The default values for those are:
  * $openid->realm     = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
- * $openid->returnUrl = $openid->realm . $_SERVER['REQUEST_URI']; # without the query part, if present
+ * $openid->returnUrl = $openid->realm . $_SERVER['REQUEST_URI'];
  * If you don't know their meaning, refer to any openid tutorial, or specification. Or just guess.
  *
  * AX and SREG extensions are supported.
@@ -70,8 +70,7 @@ class LightOpenID
     function __construct()
     {
         $this->trustRoot = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
-        $uri = $_SERVER['REQUEST_URI'];
-        $uri = strpos($uri, '?') ? substr($uri, 0, strpos($uri, '?')) : $uri;
+        $uri = rtrim(preg_replace('#((?<=\?)|&)openid\.[^&]+#', '', $_SERVER['REQUEST_URI']), '?');
         $this->returnUrl = $this->trustRoot . $uri;
 
         $this->data = $_POST + $_GET; # OPs may send data as POST or GET.
@@ -618,7 +617,9 @@ class LightOpenID
             # Even though we should know location of the endpoint,
             # we still need to verify it by discovery, so $server is not set here
             $params['openid.ns'] = 'http://specs.openid.net/auth/2.0';
-        } elseif(isset($this->data['openid_claimed_id'])) {
+        } elseif (isset($this->data['openid_claimed_id'])
+            && $this->data['openid_claimed_id'] != $this->data['openid_identity']
+        ) {
             # If it's an OpenID 1 provider, and we've got claimed_id,
             # we have to append it to the returnUrl, like authUrl_v1 does.
             $this->returnUrl .= (strpos($this->returnUrl, '?') ? '&' : '?')
