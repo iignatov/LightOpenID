@@ -348,72 +348,77 @@ class LightOpenID
                 $headers = $this->request($url, 'HEAD');
 
                 $next = false;
-                    if (isset($headers['x-xrds-location'])) {
-                        $url = $this->build_url(parse_url($url), parse_url(trim($headers['x-xrds-location'])));
-                        $next = true;
-                    }
+                if (isset($headers['x-xrds-location'])) {
+                    $url = $this->build_url(parse_url($url), parse_url(trim($headers['x-xrds-location'])));
+                    $next = true;
+                }
 
-                    if (isset($headers['content-type'])
-                        && strpos($headers['content-type'], 'application/xrds+xml') !== false
-                    ) {
-                        # Found an XRDS document, now let's find the server, and optionally delegate.
-                        $content = $this->request($url, 'GET');
+                if (isset($headers['content-type'])
+                    && (strpos($headers['content-type'], 'application/xrds+xml') !== false
+                        || strpos($headers['content-type'], 'text/xml') !== false)
+                ) {
+                    # Apparently, some providers return XRDS documents as text/html.
+                    # While it is against the spec, allowing this here shouldn't break
+                    # compatibility with anything.
+                    # ---
+                    # Found an XRDS document, now let's find the server, and optionally delegate.
+                    $content = $this->request($url, 'GET');
 
-                        preg_match_all('#<Service.*?>(.*?)</Service>#s', $content, $m);
-                        foreach($m[1] as $content) {
-                            $content = ' ' . $content; # The space is added, so that strpos doesn't return 0.
+                    preg_match_all('#<Service.*?>(.*?)</Service>#s', $content, $m);
+                    foreach($m[1] as $content) {
+                        $content = ' ' . $content; # The space is added, so that strpos doesn't return 0.
 
-                            # OpenID 2
-                            $ns = preg_quote('http://specs.openid.net/auth/2.0/');
-                            if(preg_match('#<Type>\s*'.$ns.'(server|signon)\s*</Type>#s', $content, $type)) {
-                                if ($type[1] == 'server') $this->identifier_select = true;
+                        # OpenID 2
+                        $ns = preg_quote('http://specs.openid.net/auth/2.0/');
+                        if(preg_match('#<Type>\s*'.$ns.'(server|signon)\s*</Type>#s', $content, $type)) {
+                            if ($type[1] == 'server') $this->identifier_select = true;
 
-                                preg_match('#<URI.*?>(.*)</URI>#', $content, $server);
-                                preg_match('#<(Local|Canonical)ID>(.*)</\1ID>#', $content, $delegate);
-                                if (empty($server)) {
-                                    return false;
-                                }
-                                # Does the server advertise support for either AX or SREG?
-                                $this->ax   = (bool) strpos($content, '<Type>http://openid.net/srv/ax/1.0</Type>');
-                                $this->sreg = strpos($content, '<Type>http://openid.net/sreg/1.0</Type>')
-                                           || strpos($content, '<Type>http://openid.net/extensions/sreg/1.1</Type>');
-
-                                $server = $server[1];
-                                if (isset($delegate[2])) $this->identity = trim($delegate[2]);
-                                $this->version = 2;
-
-                                $this->server = $server;
-                                return $server;
+                            preg_match('#<URI.*?>(.*)</URI>#', $content, $server);
+                            preg_match('#<(Local|Canonical)ID>(.*)</\1ID>#', $content, $delegate);
+                            if (empty($server)) {
+                                return false;
                             }
+                            # Does the server advertise support for either AX or SREG?
+                            $this->ax   = (bool) strpos($content, '<Type>http://openid.net/srv/ax/1.0</Type>');
+                            $this->sreg = strpos($content, '<Type>http://openid.net/sreg/1.0</Type>')
+                                       || strpos($content, '<Type>http://openid.net/extensions/sreg/1.1</Type>');
 
-                            # OpenID 1.1
-                            $ns = preg_quote('http://openid.net/signon/1.1');
-                            if (preg_match('#<Type>\s*'.$ns.'\s*</Type>#s', $content)) {
+                            $server = $server[1];
+                            if (isset($delegate[2])) $this->identity = trim($delegate[2]);
+                            $this->version = 2;
 
-                                preg_match('#<URI.*?>(.*)</URI>#', $content, $server);
-                                preg_match('#<.*?Delegate>(.*)</.*?Delegate>#', $content, $delegate);
-                                if (empty($server)) {
-                                    return false;
-                                }
-                                # AX can be used only with OpenID 2.0, so checking only SREG
-                                $this->sreg = strpos($content, '<Type>http://openid.net/sreg/1.0</Type>')
-                                           || strpos($content, '<Type>http://openid.net/extensions/sreg/1.1</Type>');
-
-                                $server = $server[1];
-                                if (isset($delegate[1])) $this->identity = $delegate[1];
-                                $this->version = 1;
-
-                                $this->server = $server;
-                                return $server;
-                            }
+                            $this->server = $server;
+                            return $server;
                         }
 
-                        $next = true;
-                        $yadis = false;
-                        $url = $originalUrl;
-                        $content = null;
-                        break;
+                        # OpenID 1.1
+                        $ns = preg_quote('http://openid.net/signon/1.1');
+                        if (preg_match('#<Type>\s*'.$ns.'\s*</Type>#s', $content)) {
+
+                            preg_match('#<URI.*?>(.*)</URI>#', $content, $server);
+                            preg_match('#<.*?Delegate>(.*)</.*?Delegate>#', $content, $delegate);
+                            if (empty($server)) {
+                                return false;
+                            }
+                            # AX can be used only with OpenID 2.0, so checking only SREG
+                            $this->sreg = strpos($content, '<Type>http://openid.net/sreg/1.0</Type>')
+                                       || strpos($content, '<Type>http://openid.net/extensions/sreg/1.1</Type>');
+
+                            $server = $server[1];
+                            if (isset($delegate[1])) $this->identity = $delegate[1];
+                            $this->version = 1;
+
+                            $this->server = $server;
+                            return $server;
+                        }
                     }
+
+                    $next = true;
+                    $yadis = false;
+                    $url = $originalUrl;
+                    $content = null;
+                    break;
+                }
                 if ($next) continue;
 
                 # There are no relevant information in headers, so we search the body.
