@@ -95,12 +95,16 @@ abstract class LightOpenIDProvider
      */
     protected function setAssoc($handle, $assoc)
     {
-        if(session_id()) session_destroy();
+        $oldSession = session_id();
+        session_commit();
         session_id($assoc['handle']);
         session_start();
         $_SESSION['assoc'] = $assoc;
         session_commit();
-        session_id('');
+        if($oldSession) {
+            session_id($oldSession);
+            session_start();
+        }
     }
     
     /**
@@ -111,7 +115,8 @@ abstract class LightOpenIDProvider
      */
     protected function getAssoc($handle)
     {
-        if(session_id()) session_destroy();
+        $oldSession = session_id();
+        session_commit();
         session_id($handle);
         session_start();
         if(empty($_SESSION['assoc'])) {
@@ -119,7 +124,10 @@ abstract class LightOpenIDProvider
         }
         return $_SESSION['assoc'];
         session_commit();
-        session_id('');
+        if($oldSession) {
+            session_id($oldSession);
+            session_start();
+        }
     }
     
     /**
@@ -129,11 +137,15 @@ abstract class LightOpenIDProvider
      */
     protected function delAssoc($handle)
     {
-        if(session_id()) session_destroy();
+        $oldSession = session_id();
+        session_commit();
         session_id($handle);
         session_start();
         session_destroy();
-        session_id('');
+        if($oldSession) {
+            session_id($oldSession);
+            session_start();
+        }
     }
     
     # ------------------------------------------------------------------------ #
