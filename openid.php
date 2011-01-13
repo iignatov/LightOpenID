@@ -74,6 +74,10 @@ class LightOpenID
         $this->returnUrl = $this->trustRoot . $uri;
 
         $this->data = $_POST + $_GET; # OPs may send data as POST or GET.
+
+        if(!function_exists('curl_init') && !in_array('https', stream_get_wrappers())) {
+            throw new ErrorException('You must have either https wrappers or curl enabled.');
+        }
     }
 
     function __set($name, $value)
@@ -283,7 +287,7 @@ class LightOpenID
 
     protected function request($url, $method='GET', $params=array())
     {
-        if(function_exists('curl_init') && !ini_get('safe_mode')) {
+        if(function_exists('curl_init') && !ini_get('safe_mode') && !ini_get('open_basedir')) {
             return $this->request_curl($url, $method, $params);
         }
         return $this->request_streams($url, $method, $params);
