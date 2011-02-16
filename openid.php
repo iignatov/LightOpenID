@@ -54,7 +54,7 @@ class LightOpenID
          , $cainfo = null;
     private $identity, $claimed_id;
     protected $server, $version, $trustRoot, $aliases, $identifier_select = false
-            , $ax = false, $sreg = false, $data;
+            , $ax = false, $sreg = false, $data, $setup_url = null;
     static protected $ax_to_sreg = array(
         'namePerson/friendly'     => 'nickname',
         'contact/email'           => 'email',
@@ -531,7 +531,7 @@ class LightOpenID
         return $params;
     }
 
-    protected function authUrl_v1()
+    protected function authUrl_v1($immediate)
     {
 	$returnUrl = $this->returnUrl;
         # If we have an openid.delegate that is different from our claimed id,
@@ -543,7 +543,7 @@ class LightOpenID
 
         $params = array(
             'openid.return_to'  => $returnUrl,
-            'openid.mode'       => 'checkid_setup',
+            'openid.mode'       => $immediate ? 'checkid_immediate' : 'checkid_setup',
             'openid.identity'   => $this->identity,
             'openid.trust_root' => $this->trustRoot,
             ) + $this->sregParams();
@@ -552,11 +552,11 @@ class LightOpenID
                                , array('query' => http_build_query($params, '', '&')));
     }
 
-    protected function authUrl_v2($identifier_select)
+    protected function authUrl_v2($immediate)
     {
         $params = array(
             'openid.ns'          => 'http://specs.openid.net/auth/2.0',
-            'openid.mode'        => 'checkid_setup',
+            'openid.mode'        => $immediate ? 'checkid_immediate' : 'checkid_setup',
             'openid.return_to'   => $this->returnUrl,
             'openid.realm'       => $this->trustRoot,
         );
@@ -572,7 +572,7 @@ class LightOpenID
             $params += $this->axParams() + $this->sregParams();
         }
 
-        if ($identifier_select) {
+        if ($this->identifier_select) {
             $params['openid.identity'] = $params['openid.claimed_id']
                  = 'http://specs.openid.net/auth/2.0/identifier_select';
         } else {
@@ -590,17 +590,15 @@ class LightOpenID
      * @param String $select_identifier Whether to request OP to select identity for an user in OpenID 2. Does not affect OpenID 1.
      * @throws ErrorException
      */
-    function authUrl($identifier_select = null)
+    function authUrl($immediate = false)
     {
+        if ($this->setup_url && !$immediate) return $this->setup_url;
         if (!$this->server) $this->discover($this->identity);
 
         if ($this->version == 2) {
-            if ($identifier_select === null) {
-                return $this->authUrl_v2($this->identifier_select);
-            }
-            return $this->authUrl_v2($identifier_select);
+            return $this->authUrl_v2($immediate);
         }
-        return $this->authUrl_v1();
+        return $this->authUrl_v1($immediate);
     }
 
     /**
@@ -610,6 +608,18 @@ class LightOpenID
      */
     function validate()
     {
+        # If the request was using immediate mode, a failure may be reported
+        # by presenting user_setup_url (for 1.1) or reporting
+        # mode 'setup_needed' (for 2.0). Also catching all modes other than
+        # id_res, in order to avoid throwing errors.
+        if(isset($this->data['openid_user_setup_url'])) {
+            $this->setup_url = $this->data['openid_user_setup_url'];
+            return false;
+        }
+        if($this->mode != 'id_res') {
+            return false;
+        }
+
         $this->claimed_id = isset($this->data['openid_claimed_id'])?$this->data['openid_claimed_id']:$this->data['openid_identity'];
         $params = array(
             'openid.assoc_handle' => $this->data['openid_assoc_handle'],
