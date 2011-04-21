@@ -204,7 +204,7 @@ class LightOpenID
     protected function request_streams($url, $method='GET', $params=array())
     {
         if(!$this->hostExists($url)) {
-            throw new ErrorException('Invalid request.');
+            throw new ErrorException("Could not connect to $url.", 404);
         }
 
         $params = http_build_query($params, '', '&');
@@ -466,9 +466,9 @@ class LightOpenID
                 return $server;
             }
 
-            throw new ErrorException('No servers found!');
+            throw new ErrorException("No OpenID Server found at $url", 404);
         }
-        throw new ErrorException('Endless redirection!');
+        throw new ErrorException('Endless redirection!', 500);
     }
 
     protected function sregParams()
