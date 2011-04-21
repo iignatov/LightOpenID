@@ -70,7 +70,12 @@ class LightOpenID
 
     function __construct()
     {
-        $this->trustRoot = ((empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] == 'off') ? 'http' : 'https') . '://' . $_SERVER['HTTP_HOST'];
+        $this->trustRoot = 'http://' . $_SERVER['HTTP_HOST'];
+        if (!empty($_SERVER['HTTPS']) || (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
+            && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')
+        ) {
+            $this->trustRoot = 'https://' . $_SERVER['HTTP_HOST'];
+        }
         $uri = rtrim(preg_replace('#((?<=\?)|&)openid\.[^&]+#', '', $_SERVER['REQUEST_URI']), '?');
         $this->returnUrl = $this->trustRoot . $uri;
 
