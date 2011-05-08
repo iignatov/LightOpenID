@@ -293,7 +293,9 @@ class LightOpenID
 
     protected function request($url, $method='GET', $params=array())
     {
-        if(function_exists('curl_init') && !ini_get('safe_mode') && !ini_get('open_basedir')) {
+        if (function_exists('curl_init')
+            && (!in_array('https', stream_get_wrappers()) || !ini_get('safe_mode') && !ini_get('open_basedir'))
+        ) {
             return $this->request_curl($url, $method, $params);
         }
         return $this->request_streams($url, $method, $params);
