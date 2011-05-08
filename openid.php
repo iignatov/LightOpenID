@@ -702,8 +702,8 @@ class LightOpenID
         }
 
         $attributes = array();
-        foreach ($this->data as $key => $value) {
-            $keyMatch = 'openid_' . $alias . '_value_';
+        foreach (explode(',', $this->data['openid_signed']) as $key) {
+            $keyMatch = $alias . '.value.';
             if (substr($key, 0, strlen($keyMatch)) != $keyMatch) {
                 continue;
             }
@@ -714,8 +714,10 @@ class LightOpenID
                 # to check, than cause an E_NOTICE.
                 continue;
             }
+            $value = $this->data['openid_' . $alias . '_value_' . $key];
             $key = substr($this->data['openid_' . $alias . '_type_' . $key],
                           strlen('http://axschema.org/'));
+
             $attributes[$key] = $value;
         }
         return $attributes;
@@ -725,8 +727,8 @@ class LightOpenID
     {
         $attributes = array();
         $sreg_to_ax = array_flip(self::$ax_to_sreg);
-        foreach ($this->data as $key => $value) {
-            $keyMatch = 'openid_sreg_';
+        foreach (explode(',', $this->data['openid_signed']) as $key) {
+            $keyMatch = 'sreg.';
             if (substr($key, 0, strlen($keyMatch)) != $keyMatch) {
                 continue;
             }
@@ -735,7 +737,7 @@ class LightOpenID
                 # The field name isn't part of the SREG spec, so we ignore it.
                 continue;
             }
-            $attributes[$sreg_to_ax[$key]] = $value;
+            $attributes[$sreg_to_ax[$key]] = $this->data['openid_sreg_' . $key];
         }
         return $attributes;
     }
