@@ -216,7 +216,9 @@ class LightOpenID
                     'method' => 'GET',
                     'header' => 'Accept: application/xrds+xml, */*',
                     'ignore_errors' => true,
-                )
+                ), 'ssl' => array(
+                    'CN_match' => parse_url($url, PHP_URL_HOST),
+                ),
             );
             $url = $url . ($params ? '?' . $params : '');
             break;
@@ -227,7 +229,9 @@ class LightOpenID
                     'header'  => 'Content-type: application/x-www-form-urlencoded',
                     'content' => $params,
                     'ignore_errors' => true,
-                )
+                ), 'ssl' => array(
+                    'CN_match' => parse_url($url, PHP_URL_HOST),
+                ),
             );
             break;
         case 'HEAD':
@@ -236,11 +240,15 @@ class LightOpenID
             # we have to change the defaults.
             $default = stream_context_get_options(stream_context_get_default());
             stream_context_get_default(
-                array('http' => array(
-                    'method' => 'HEAD',
-                    'header' => 'Accept: application/xrds+xml, */*',
-                    'ignore_errors' => true,
-                ))
+                array(
+                    'http' => array(
+                        'method' => 'HEAD',
+                        'header' => 'Accept: application/xrds+xml, */*',
+                        'ignore_errors' => true,
+                    ), 'ssl' => array(
+                        'CN_match' => parse_url($url, PHP_URL_HOST),
+                    ),
+                )
             );
 
             $url = $url . ($params ? '?' . $params : '');
@@ -280,11 +288,11 @@ class LightOpenID
         }
 
         if($this->verify_peer) {
-            $opts += array('ssl' => array(
+            $opts['ssl'] += array(
                 'verify_peer' => true,
                 'capath'      => $this->capath,
                 'cafile'      => $this->cainfo,
-            ));
+            );
         }
 
         $context = stream_context_create ($opts);
