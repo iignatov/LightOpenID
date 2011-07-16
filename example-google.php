@@ -2,7 +2,8 @@
 # Logging in with Google accounts requires setting special identity, so this example shows how to do it.
 require 'openid.php';
 try {
-    $openid = new LightOpenID;
+    # Change 'localhost' to your domain name.
+    $openid = new LightOpenID('localhost');
     if(!$openid->mode) {
         if(isset($_GET['login'])) {
             $openid->identity = 'https://www.google.com/accounts/o8/id';

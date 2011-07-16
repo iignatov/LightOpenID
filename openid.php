@@ -8,7 +8,7 @@
  * Sign-on with OpenID is a two step process:
  * Step one is authentication with the provider:
  * <code>
- * $openid = new LightOpenID;
+ * $openid = new LightOpenID('my-host.example.org');
  * $openid->identity = 'ID supplied by user';
  * header('Location: ' . $openid->authUrl());
  * </code>
@@ -16,10 +16,13 @@
  * Step two is verification:
  * <code>
  * if ($this->data['openid_mode']) {
- *     $openid = new LightOpenID;
+ *     $openid = new LightOpenID('my-host.example.org');
  *     echo $openid->validate() ? 'Logged in.' : 'Failed';
  * }
  * </code>
+ *
+ * Change the 'my-host.example.org' to your domain name. Do NOT use $_SERVER['HTTP_HOST']
+ * for that, unless you know what you are doing.
  *
  * Optionally, you can set $returnUrl and $realm (or $trustRoot, which is an alias).
  * The default values for those are:
@@ -68,14 +71,14 @@ class LightOpenID
         'pref/timezone'           => 'timezone',
         );
 
-    function __construct()
+    function __construct($host)
     {
-        $this->trustRoot = 'http://' . $_SERVER['HTTP_HOST'];
+        $this->trustRoot = (strpos($host, '://') ? $host : 'http://' . $host);
         if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off')
             || (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
             && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')
         ) {
-            $this->trustRoot = 'https://' . $_SERVER['HTTP_HOST'];
+            $this->trustRoot = 'https://' . $host;
         }
         $uri = rtrim(preg_replace('#((?<=\?)|&)openid\.[^&]+#', '', $_SERVER['REQUEST_URI']), '?');
         $this->returnUrl = $this->trustRoot . $uri;

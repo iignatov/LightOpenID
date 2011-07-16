@@ -1,7 +1,8 @@
 <?php
 require 'openid.php';
 try {
-    $openid = new LightOpenID;
+    # Change 'localhost' to your domain name.
+    $openid = new LightOpenID('localhost');
     if(!$openid->mode) {
         if(isset($_POST['openid_identifier'])) {
             $openid->identity = $_POST['openid_identifier'];
