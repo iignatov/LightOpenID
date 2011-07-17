@@ -691,7 +691,7 @@ abstract class LightOpenIDProvider
         }
         
         # We set openid.identity (and openid.claimed_id if necessary) to our $identity
-        if($this->data['openid_identity'] == $this->data['openid_claimed_id']) {
+        if($this->data['openid_identity'] == $this->data['openid_claimed_id'] || $this->select_id) {
             $this->data['openid_claimed_id'] = $identity;
         }
         $this->data['openid_identity'] = $identity;
