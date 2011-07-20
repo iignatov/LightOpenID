@@ -78,7 +78,7 @@ class LightOpenID
             || (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
             && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')
         ) {
-            $this->trustRoot = 'https://' . $host;
+            $this->trustRoot = (strpos($host, '://') ? $host : 'https://' . $host);
         }
         $uri = rtrim(preg_replace('#((?<=\?)|&)openid\.[^&]+#', '', $_SERVER['REQUEST_URI']), '?');
         $this->returnUrl = $this->trustRoot . $uri;
