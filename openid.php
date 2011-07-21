@@ -80,6 +80,11 @@ class LightOpenID
         ) {
             $this->trustRoot = (strpos($host, '://') ? $host : 'https://' . $host);
         }
+
+        if(($host_end = strpos($this->trustRoot, '/', 8)) !== false) {
+            $this->trustRoot = substr($this->trustRoot, 0, $host_end);
+        }
+
         $uri = rtrim(preg_replace('#((?<=\?)|&)openid\.[^&]+#', '', $_SERVER['REQUEST_URI']), '?');
         $this->returnUrl = $this->trustRoot . $uri;
 
