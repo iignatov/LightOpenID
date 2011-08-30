@@ -15,8 +15,8 @@
  * The provider then sends various parameters via GET, one of them is openid_mode.
  * Step two is verification:
  * <code>
- * if ($this->data['openid_mode']) {
- *     $openid = new LightOpenID('my-host.example.org');
+ * $openid = new LightOpenID('my-host.example.org');
+ * if ($openid->mode) {
  *     echo $openid->validate() ? 'Logged in.' : 'Failed';
  * }
  * </code>
@@ -403,7 +403,7 @@ class LightOpenID
                         $content = ' ' . $content; # The space is added, so that strpos doesn't return 0.
 
                         # OpenID 2
-                        $ns = preg_quote('http://specs.openid.net/auth/2.0/');
+                        $ns = preg_quote('http://specs.openid.net/auth/2.0/', '#');
                         if(preg_match('#<Type>\s*'.$ns.'(server|signon)\s*</Type>#s', $content, $type)) {
                             if ($type[1] == 'server') $this->identifier_select = true;
 
@@ -426,7 +426,7 @@ class LightOpenID
                         }
 
                         # OpenID 1.1
-                        $ns = preg_quote('http://openid.net/signon/1.1');
+                        $ns = preg_quote('http://openid.net/signon/1.1', '#');
                         if (preg_match('#<Type>\s*'.$ns.'\s*</Type>#s', $content)) {
 
                             preg_match('#<URI.*?>(.*)</URI>#', $content, $server);
