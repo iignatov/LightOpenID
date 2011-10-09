@@ -558,7 +558,7 @@ class LightOpenID
 
     protected function authUrl_v1($immediate)
     {
-	$returnUrl = $this->returnUrl;
+        $returnUrl = $this->returnUrl;
         # If we have an openid.delegate that is different from our claimed id,
         # we need to somehow preserve the claimed id between requests.
         # The simplest way is to just send it along with the return_to url.
