@@ -15,8 +15,8 @@
  * The provider then sends various parameters via GET, one of them is openid_mode.
  * Step two is verification:
  * <code>
- * if ($this->data['openid_mode']) {
- *     $openid = new LightOpenID('my-host.example.org');
+ * $openid = new LightOpenID('my-host.example.org');
+ * if ($openid->mode) {
  *     echo $openid->validate() ? 'Logged in.' : 'Failed';
  * }
  * </code>
@@ -190,8 +190,10 @@ class LightOpenID
             $headers = array();
             foreach(explode("\n", $response) as $header) {
                 $pos = strpos($header,':');
-                $name = strtolower(trim(substr($header, 0, $pos)));
-                $headers[$name] = trim(substr($header, $pos+1));
+                if ($pos !== false) {
+                    $name = strtolower(trim(substr($header, 0, $pos)));
+                    $headers[$name] = trim(substr($header, $pos+1));
+                }
             }
 
             # Updating claimed_id in case of redirections.
@@ -269,23 +271,25 @@ class LightOpenID
             $headers = array();
             foreach($headers_tmp as $header) {
                 $pos = strpos($header,':');
-                $name = strtolower(trim(substr($header, 0, $pos)));
-                $headers[$name] = trim(substr($header, $pos+1));
+                if ($pos !== false) {
+                    $name = strtolower(trim(substr($header, 0, $pos)));
+                    $headers[$name] = trim(substr($header, $pos+1));
 
-                # Following possible redirections. The point is just to have
-                # claimed_id change with them, because get_headers() will
-                # follow redirections automatically.
-                # We ignore redirections with relative paths.
-                # If any known provider uses them, file a bug report.
-                if($name == 'location') {
-                    if(strpos($headers[$name], 'http') === 0) {
-                        $this->identity = $this->claimed_id = $headers[$name];
-                    } elseif($headers[$name][0] == '/') {
-                        $parsed_url = parse_url($this->claimed_id);
-                        $this->identity =
-                        $this->claimed_id = $parsed_url['scheme'] . '://'
-                                          . $parsed_url['host']
-                                          . $headers[$name];
+                    # Following possible redirections. The point is just to have
+                    # claimed_id change with them, because get_headers() will
+                    # follow redirections automatically.
+                    # We ignore redirections with relative paths.
+                    # If any known provider uses them, file a bug report.
+                    if($name == 'location') {
+                        if(strpos($headers[$name], 'http') === 0) {
+                            $this->identity = $this->claimed_id = $headers[$name];
+                        } elseif($headers[$name][0] == '/') {
+                            $parsed_url = parse_url($this->claimed_id);
+                            $this->identity =
+                            $this->claimed_id = $parsed_url['scheme'] . '://'
+                                              . $parsed_url['host']
+                                              . $headers[$name];
+                        }
                     }
                 }
             }
@@ -399,7 +403,7 @@ class LightOpenID
                         $content = ' ' . $content; # The space is added, so that strpos doesn't return 0.
 
                         # OpenID 2
-                        $ns = preg_quote('http://specs.openid.net/auth/2.0/');
+                        $ns = preg_quote('http://specs.openid.net/auth/2.0/', '#');
                         if(preg_match('#<Type>\s*'.$ns.'(server|signon)\s*</Type>#s', $content, $type)) {
                             if ($type[1] == 'server') $this->identifier_select = true;
 
@@ -422,7 +426,7 @@ class LightOpenID
                         }
 
                         # OpenID 1.1
-                        $ns = preg_quote('http://openid.net/signon/1.1');
+                        $ns = preg_quote('http://openid.net/signon/1.1', '#');
                         if (preg_match('#<Type>\s*'.$ns.'\s*</Type>#s', $content)) {
 
                             preg_match('#<URI.*?>(.*)</URI>#', $content, $server);
