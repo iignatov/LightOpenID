@@ -326,7 +326,7 @@ class LightOpenID
                 return $this->headers;
             }
 
-            $headers = $this->parse_header_array($headers);
+            $headers = $this->parse_header_array($headers, $update_claimed_id);
 
             # And restore them.
             stream_context_get_default($default);
