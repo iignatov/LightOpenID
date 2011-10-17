@@ -235,7 +235,7 @@ class LightOpenID
     protected function parse_header_array($array, $update_claimed_id)
     {
         $headers = array();
-        foreach($headers as $header) {
+        foreach($array as $header) {
             $pos = strpos($header,':');
             if ($pos !== false) {
                 $name = strtolower(trim(substr($header, 0, $pos)));
