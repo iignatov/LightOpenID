@@ -349,7 +349,7 @@ class LightOpenID
             $this->headers = $this->parse_header_array($http_response_header, $update_claimed_id);
         }
 
-        return file_get_contents($url, false, $context);
+        return $data;
     }
 
     protected function request($url, $method='GET', $params=array(), $update_claimed_id=false)
