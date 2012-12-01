@@ -55,7 +55,8 @@ class LightOpenID
          , $verify_peer = null
          , $capath = null
          , $cainfo = null
-         , $data;
+         , $data
+         , $oauth = array();
     private $identity, $claimed_id;
     protected $server, $version, $trustRoot, $aliases, $identifier_select = false
             , $ax = false, $sreg = false, $setup_url = null, $headers = array(), $proxy = null;
@@ -702,16 +703,25 @@ class LightOpenID
             'openid.return_to'   => $this->returnUrl,
             'openid.realm'       => $this->trustRoot,
         );
+        
         if ($this->ax) {
             $params += $this->axParams();
         }
+        
         if ($this->sreg) {
             $params += $this->sregParams();
         }
+        
         if (!$this->ax && !$this->sreg) {
             # If OP doesn't advertise either SREG, nor AX, let's send them both
             # in worst case we don't get anything in return.
             $params += $this->axParams() + $this->sregParams();
+        }
+
+        if (!empty($this->oauth) && is_array($this->oauth)) {
+            $params['openid.ns.oauth'] = 'http://specs.openid.net/extensions/oauth/1.0';
+            $params['openid.oauth.consumer'] = str_replace(array('http://', 'https://'), '', $this->trustRoot);
+            $params['openid.oauth.scope'] = implode(' ', $this->oauth);
         }
 
         if ($this->identifier_select) {
@@ -820,15 +830,9 @@ class LightOpenID
         } else {
             # 'ax' prefix is either undefined, or points to another extension,
             # so we search for another prefix
-            foreach ($this->data as $key => $val) {
-                if (substr($key, 0, strlen('openid_ns_')) == 'openid_ns_'
-                    && $val == 'http://openid.net/srv/ax/1.0'
-                ) {
-                    $alias = substr($key, strlen('openid_ns_'));
-                    break;
-                }
-            }
+            $alias = $this->findNamespaceAlias('http://openid.net/srv/ax/1.0');
         }
+        
         if (!$alias) {
             # An alias for AX schema has not been found,
             # so there is no AX data in the OP's response
@@ -838,7 +842,7 @@ class LightOpenID
         $attributes = array();
         foreach (explode(',', $this->data['openid_signed']) as $key) {
             $keyMatch = $alias . '.value.';
-            if (substr($key, 0, strlen($keyMatch)) != $keyMatch) {
+            if (strncmp($key, $keyMatch, strlen($keyMatch)) === 0) {
                 continue;
             }
             $key = substr($key, strlen($keyMatch));
@@ -863,7 +867,7 @@ class LightOpenID
         $sreg_to_ax = array_flip(self::$ax_to_sreg);
         foreach (explode(',', $this->data['openid_signed']) as $key) {
             $keyMatch = 'sreg.';
-            if (substr($key, 0, strlen($keyMatch)) != $keyMatch) {
+            if (strncmp($key, $keyMatch, strlen($keyMatch)) === 0) {
                 continue;
             }
             $key = substr($key, strlen($keyMatch));
@@ -894,5 +898,40 @@ class LightOpenID
             return $this->getAxAttributes() + $this->getSregAttributes();
         }
         return $this->getSregAttributes();
+    }
+
+    /**
+     * Gets an OAuth request token if the OpenID+OAuth hybrid protocol has been used.
+     *
+     * In order to use the OpenID+OAuth hybrid protocol, you need to add at least one
+     * scope to the $openid->oauth array before you get the call to getAuthUrl(), e.g.:
+     * $openid->oauth[] = 'https://www.googleapis.com/auth/plus.me';
+     * 
+     * Furthermore the registered consumer name must fit the OpenID realm. 
+     * To register an OpenID consumer at Google use: https://www.google.com/accounts/ManageDomains
+     * 
+     * @return string|false OAuth request token on success, FALSE if no token was provided.
+     */
+    function getOAuthRequestToken()
+    {
+        $alias = $this->findNamespaceAlias('http://specs.openid.net/extensions/oauth/1.0');
+        
+        return !empty($alias) ? $this->data['openid_' . $alias . '_request_token'] : false;
+    }
+    
+    private function findNamespaceAlias($lookupValue)
+    {
+        $result = '';
+        $prefix = 'openid_ns_';
+        $length = strlen($prefix);
+        
+        foreach ($this->data as $key => $val) {
+            if (strncmp($key, $prefix, $length) === 0 && $val === $lookupValue) {
+                $result = trim(substr($key, $length));
+                break;
+            }
+        }
+        
+        return $result;
     }
 }
