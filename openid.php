@@ -842,7 +842,7 @@ class LightOpenID
         $attributes = array();
         foreach (explode(',', $this->data['openid_signed']) as $key) {
             $keyMatch = $alias . '.value.';
-            if (strncmp($key, $keyMatch, strlen($keyMatch)) === 0) {
+            if (strncmp($key, $keyMatch, strlen($keyMatch)) !== 0) {
                 continue;
             }
             $key = substr($key, strlen($keyMatch));
@@ -867,7 +867,7 @@ class LightOpenID
         $sreg_to_ax = array_flip(self::$ax_to_sreg);
         foreach (explode(',', $this->data['openid_signed']) as $key) {
             $keyMatch = 'sreg.';
-            if (strncmp($key, $keyMatch, strlen($keyMatch)) === 0) {
+            if (strncmp($key, $keyMatch, strlen($keyMatch)) !== 0) {
                 continue;
             }
             $key = substr($key, strlen($keyMatch));
