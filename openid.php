@@ -822,43 +822,48 @@ class LightOpenID
 
     protected function getAxAttributes()
     {
-        $alias = null;
-        if (isset($this->data['openid_ns_ax'])
-            && $this->data['openid_ns_ax'] != 'http://openid.net/srv/ax/1.0'
-        ) { # It's the most likely case, so we'll check it before
-            $alias = 'ax';
+        $result = array();
+        
+        if ($alias = $this->getNamespaceAlias('http://openid.net/srv/ax/1.0', 'ax')) {
+            $prefix = 'openid_' . $alias;
+            $length = strlen('http://axschema.org/');
+            
+            foreach (explode(',', $this->data['openid_signed']) as $key) {
+                $keyMatch = $alias . '.type.';
+                
+                if (strncmp($key, $keyMatch, strlen($keyMatch)) !== 0) {
+                    continue;
+                }
+                
+                $key = substr($key, strlen($keyMatch));
+                $idv = $prefix . '_value_' . $key;
+                $idc = $prefix . '_count_' . $key;
+                $key = substr($this->getItem($prefix . '_type_' . $key), $length);
+                
+                if (!empty($key)) {
+                    if (($count = intval($this->getItem($idc))) > 0) {
+                        $value = array();
+                        
+                        for ($i = 1; $i <= $count; $i++) {
+                            $value[] = $this->getItem($idv . '_' . $i);
+                        }
+                        
+                        $value = ($count == 1) ? reset($value) : $value;
+                    } else {
+                        $value = $this->getItem($idv);
+                    }
+                    
+                    if (!is_null($value)) {
+                        $result[$key] = $value;
+                    }
+                }
+            }
         } else {
-            # 'ax' prefix is either undefined, or points to another extension,
-            # so we search for another prefix
-            $alias = $this->findNamespaceAlias('http://openid.net/srv/ax/1.0');
+            // No alias for the AX schema has been found,
+            // so there is no AX data in the OP's response.
         }
         
-        if (!$alias) {
-            # An alias for AX schema has not been found,
-            # so there is no AX data in the OP's response
-            return array();
-        }
-
-        $attributes = array();
-        foreach (explode(',', $this->data['openid_signed']) as $key) {
-            $keyMatch = $alias . '.value.';
-            if (strncmp($key, $keyMatch, strlen($keyMatch)) !== 0) {
-                continue;
-            }
-            $key = substr($key, strlen($keyMatch));
-            if (!isset($this->data['openid_' . $alias . '_type_' . $key])) {
-                # OP is breaking the spec by returning a field without
-                # associated ns. This shouldn't happen, but it's better
-                # to check, than cause an E_NOTICE.
-                continue;
-            }
-            $value = $this->data['openid_' . $alias . '_value_' . $key];
-            $key = substr($this->data['openid_' . $alias . '_type_' . $key],
-                          strlen('http://axschema.org/'));
-
-            $attributes[$key] = $value;
-        }
-        return $attributes;
+        return $result;
     }
 
     protected function getSregAttributes()
@@ -910,28 +915,53 @@ class LightOpenID
      * Furthermore the registered consumer name must fit the OpenID realm. 
      * To register an OpenID consumer at Google use: https://www.google.com/accounts/ManageDomains
      * 
-     * @return string|false OAuth request token on success, FALSE if no token was provided.
+     * @return string|bool OAuth request token on success, FALSE if no token was provided.
      */
     function getOAuthRequestToken()
     {
-        $alias = $this->findNamespaceAlias('http://specs.openid.net/extensions/oauth/1.0');
+        $alias = $this->getNamespaceAlias('http://specs.openid.net/extensions/oauth/1.0');
         
         return !empty($alias) ? $this->data['openid_' . $alias . '_request_token'] : false;
     }
     
-    private function findNamespaceAlias($lookupValue)
+    /**
+     * Gets the alias for the specified namespace, if it's present.
+     *
+     * @param string $namespace The namespace for which an alias is needed.
+     * @param string $hint Common alias of this namespace, used for optimization.
+     * @return string|null The namespace alias if found, otherwise - NULL.
+     */
+    private function getNamespaceAlias($namespace, $hint = null)
     {
-        $result = '';
-        $prefix = 'openid_ns_';
-        $length = strlen($prefix);
+        $result = null;
         
-        foreach ($this->data as $key => $val) {
-            if (strncmp($key, $prefix, $length) === 0 && $val === $lookupValue) {
-                $result = trim(substr($key, $length));
-                break;
+        if (empty($hint) || $this->getItem('openid_ns_' . $hint) != $namespace) {
+            // The common alias is either undefined or points to
+            // some other extension - search for another alias..
+            $prefix = 'openid_ns_';
+            $length = strlen($prefix);
+            
+            foreach ($this->data as $key => $val) {
+                if (strncmp($key, $prefix, $length) === 0 && $val === $namespace) {
+                    $result = trim(substr($key, $length));
+                    break;
+                }
             }
+        } else {
+            $result = $hint;
         }
         
         return $result;
+    }
+    
+    /**
+     * Gets an item from the $data array by the specified id.
+     *
+     * @param string $id The id of the desired item.
+     * @return string|null The item if found, otherwise - NULL.
+     */
+    private function getItem($id)
+    {
+        return isset($this->data[$id]) ? $this->data[$id] : null; 
     }
 }
