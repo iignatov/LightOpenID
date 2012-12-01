@@ -58,7 +58,7 @@ class LightOpenID
          , $data;
     private $identity, $claimed_id;
     protected $server, $version, $trustRoot, $aliases, $identifier_select = false
-            , $ax = false, $sreg = false, $setup_url = null, $headers = array();
+            , $ax = false, $sreg = false, $setup_url = null, $headers = array(), $proxy = null;
     static protected $ax_to_sreg = array(
         'namePerson/friendly'     => 'nickname',
         'contact/email'           => 'email',
@@ -71,7 +71,7 @@ class LightOpenID
         'pref/timezone'           => 'timezone',
         );
 
-    function __construct($host)
+    function __construct($host, $proxy = null)
     {
         $this->trustRoot = (strpos($host, '://') ? $host : 'http://' . $host);
         if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off')
@@ -84,6 +84,8 @@ class LightOpenID
         if(($host_end = strpos($this->trustRoot, '/', 8)) !== false) {
             $this->trustRoot = substr($this->trustRoot, 0, $host_end);
         }
+        
+        $this->set_proxy($proxy);
 
         $uri = rtrim(preg_replace('#((?<=\?)|&)openid\.[^&]+#', '', $_SERVER['REQUEST_URI']), '?');
         $this->returnUrl = $this->trustRoot . $uri;
@@ -132,6 +134,32 @@ class LightOpenID
             return empty($this->data['openid_mode']) ? null : $this->data['openid_mode'];
         }
     }
+    
+    function set_proxy($proxy)
+    {
+        if (!empty($proxy)) {
+            // When the proxy is a string - try to parse it.
+            if (!is_array($proxy)) {
+                $proxy = parse_url($proxy);
+            }
+            
+            // Check if $proxy is valid after the parsing.
+            if ($proxy && !empty($proxy['host'])) {
+                // Make sure that a valid port number is specified.
+                if (array_key_exists('port', $proxy)) {
+                    if (!is_int($proxy['port'])) {
+                        $proxy['port'] = is_numeric($proxy['port']) ? intval($proxy['port']) : 0;
+                    }
+                    
+                    if ($port <= 0) {
+                        unset($proxy['port']);
+                    }
+                }
+                
+                $this->proxy = $proxy;
+            }
+        }
+    }
 
     /**
      * Checks if the server specified in the url exists.
@@ -163,6 +191,18 @@ class LightOpenID
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HTTPHEADER, array('Accept: application/xrds+xml, */*'));
+        
+        if (!empty($this->proxy)) {
+            curl_setopt($curl, CURLOPT_PROXY, $this->proxy['host']);
+            
+            if (!empty($this->proxy['port'])) {
+                curl_setopt($curl, CURLOPT_PROXYPORT, $this->proxy['port']);
+            }
+            
+            if (!empty($this->proxy['user'])) {
+                curl_setopt($curl, CURLOPT_PROXYUSERPWD, $this->proxy['user'] . ':' . $this->proxy['pass']);            
+            }
+        }
 
         if($this->verify_peer !== null) {
             curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, $this->verify_peer);
@@ -281,6 +321,9 @@ class LightOpenID
                 ),
             );
             $url = $url . ($params ? '?' . $params : '');
+            if (!empty($this->proxy)) {
+                $opts['http']['proxy'] = $this->proxy_url();
+            }
             break;
         case 'POST':
             $opts = array(
@@ -293,6 +336,9 @@ class LightOpenID
                     'CN_match' => parse_url($url, PHP_URL_HOST),
                 ),
             );
+            if (!empty($this->proxy)) {
+                $opts['http']['proxy'] = $this->proxy_url();
+            }
             break;
         case 'HEAD':
             # We want to send a HEAD request,
@@ -360,6 +406,27 @@ class LightOpenID
             return $this->request_curl($url, $method, $params, $update_claimed_id);
         }
         return $this->request_streams($url, $method, $params, $update_claimed_id);
+    }
+    
+    protected function proxy_url()
+    {
+        $result = '';
+        
+        if (!empty($this->proxy)) {
+            $result = $this->proxy['host'];
+            
+            if (!empty($this->proxy['port'])) {
+                $result = $result . ':' . $this->proxy['port'];
+            }
+            
+            if (!empty($this->proxy['user'])) {
+                $result = $this->proxy['user'] . ':' . $this->proxy['pass'] . '@' . $result;
+            }
+            
+            $result = 'http://' . $result;
+        }
+        
+        return $result;
     }
 
     protected function build_url($url, $parts)
