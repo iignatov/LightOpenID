@@ -361,19 +361,33 @@ class LightOpenID
                 'CN_match' => ''
             );
             
-            // Change the stream context options.
-            stream_context_get_default(
-                array(
-                    'http' => array(
-                        'method' => 'HEAD',
-                        'header' => 'Accept: application/xrds+xml, */*',
-                        'ignore_errors' => true,
-                    ),
-                    'ssl' => array(
-                        'CN_match' => parse_url($url, PHP_URL_HOST)
-                    )
+            $opts = array(
+                'http' => array(
+                    'method' => 'HEAD',
+                    'header' => 'Accept: application/xrds+xml, */*',
+                    'ignore_errors' => true,
+                ),
+                'ssl' => array(
+                    'CN_match' => parse_url($url, PHP_URL_HOST)
                 )
             );
+            
+            // Enable validation of the SSL certificates.
+            if ($this->verify_peer) {
+                $default['ssl'] += array(
+                    'verify_peer' => false,
+                    'capath' => '',
+                    'cafile' => ''
+                );
+                $opts['ssl'] += array(
+                    'verify_peer' => true,
+                    'capath' => $this->capath,
+                    'cafile' => $this->cainfo
+                );
+            }
+            
+            // Change the stream context options.
+            stream_context_get_default($opts);
             
             $headers = get_headers($url . ($params ? '?' . $params : ''));
             
@@ -397,11 +411,11 @@ class LightOpenID
             return $headers;
         }
 
-        if($this->verify_peer) {
+        if ($this->verify_peer) {
             $opts['ssl'] += array(
                 'verify_peer' => true,
                 'capath'      => $this->capath,
-                'cafile'      => $this->cainfo,
+                'cafile'      => $this->cainfo
             );
         }
 
