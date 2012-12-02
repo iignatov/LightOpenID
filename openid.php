@@ -4,6 +4,7 @@
  * 
  * It requires PHP >= 5.1.2 with cURL or HTTP/HTTPS stream wrappers enabled.
  *
+ * @version v1.1.0 2012-12-02
  * @link http://gitorious.org/lightopenid Official Repo
  * @link http://github.com/iignatov/LightOpenID GitHub Clone
  * @author Mewp
