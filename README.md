@@ -43,7 +43,14 @@ Lightweight PHP5 library for easy OpenID authentication.
   $openid->optional = array('namePerson/first');
   ```
 
-  If the server supports only SREG or OpenID 1.1, these are automaticaly mapped to SREG names.
+  Note that if the server supports only SREG or OpenID 1.1, these are automaticaly mapped 
+  to SREG names. To get the values use:
+
+  ```php  
+  $openid->getAttributes();
+  ```
+
+  For more information see [USAGE.md](http://github.com/iignatov/LightOpenID/blob/master/USAGE.md).
 
 
 ## Requirements
@@ -64,8 +71,9 @@ This library requires PHP >= 5.1.2 with cURL or HTTP/HTTPS stream wrappers enabl
 
 ## License
 
-LightOpenID is an open source software available under the [MIT license]
-(http://opensource.org/licenses/mit-license.php).
+[LightOpenID](http://github.com/iignatov/LightOpenID)
+is an open source software available under the
+[MIT License](http://opensource.org/licenses/mit-license.php).
 
 
 ## Links
@@ -76,3 +84,4 @@ LightOpenID is an open source software available under the [MIT license]
   easy to install and use social sign on PHP library, which uses LightOpenID.
 * [OpenID Dev Specifications](http://openid.net/developers/specs/) -
   documentation for the OpenID extensions and related topics.
+
