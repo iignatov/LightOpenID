@@ -11,7 +11,7 @@ Lightweight PHP5 library for easy OpenID authentication.
 
 ## Quick start
 
-* Sign-on with OpenID is a 2-step process:
+* Sign-on with OpenID in just 2 steps:
   
   1. Authentication with the provider:
 
@@ -46,12 +46,6 @@ Lightweight PHP5 library for easy OpenID authentication.
   If the server supports only SREG or OpenID 1.1, these are automaticaly mapped to SREG names.
 
 
-## Identity selector
-
-If you look for an user interface (identity selector) to use with LightOpenID,
-check out [JavaScript OpenID Selector](http://code.google.com/p/openid-selector/).
-
-
 ## Requirements
 
 This library requires PHP >= 5.1.2 with cURL or HTTP/HTTPS stream wrappers enabled.
@@ -65,10 +59,20 @@ This library requires PHP >= 5.1.2 with cURL or HTTP/HTTPS stream wrappers enabl
 * Supports Yadis discovery.
 * Supports only stateless/dumb protocol.
 * Works with PHP >= 5.
-* Generates no errors with error_reporting(E_ALL | E_STRICT).
+* Generates no errors with `error_reporting(E_ALL | E_STRICT)`.
 
 
 ## License
 
-LightOpenID is an Open Source Software available under the [MIT license]
+LightOpenID is an open source software available under the [MIT license]
 (http://opensource.org/licenses/mit-license.php).
+
+
+## Links
+
+* [JavaScript OpenID Selector](http://code.google.com/p/openid-selector/) -
+  simple user interface that can be used with LightOpenID.
+* [HybridAuth](http://hybridauth.sourceforge.net/) -
+  easy to install and use social sign on PHP library, which uses LightOpenID.
+* [OpenID Dev Specifications](http://openid.net/developers/specs/) -
+  documentation for the OpenID extensions and related topics.
