@@ -342,41 +342,58 @@ class LightOpenID
             }
             break;
         case 'HEAD':
-            # We want to send a HEAD request,
-            # but since get_headers doesn't accept $context parameter,
-            # we have to change the defaults.
+            // We want to send a HEAD request, but since get_headers() doesn't 
+            // accept $context parameter, we have to change the defaults.
             $default = stream_context_get_options(stream_context_get_default());
+            
+            // PHP does not reset all options. Instead, it just sets the options
+            // available in the passed array, therefore set the defaults manually.
+            $default += array(
+                'http' => array(),
+                'ssl' => array()
+            );
+            $default['http'] += array(
+                'method' => 'GET',
+                'header' => '',
+                'ignore_errors' => false
+            );
+            $default['ssl'] += array(
+                'CN_match' => ''
+            );
+            
+            // Change the stream context options.
             stream_context_get_default(
                 array(
                     'http' => array(
                         'method' => 'HEAD',
                         'header' => 'Accept: application/xrds+xml, */*',
                         'ignore_errors' => true,
-                    ), 'ssl' => array(
-                        'CN_match' => parse_url($url, PHP_URL_HOST),
                     ),
+                    'ssl' => array(
+                        'CN_match' => parse_url($url, PHP_URL_HOST)
+                    )
                 )
             );
-
-            $url = $url . ($params ? '?' . $params : '');
-            $headers = get_headers ($url);
-            if(!$headers) {
-                return array();
-            }
-
-            if(intval(substr($headers[0], strlen('HTTP/1.1 '))) == 405) {
-                # The server doesn't support HEAD, so let's emulate it with
-                # a GET.
-                $args = func_get_args();
-                $args[1] = 'GET';
-                call_user_func_array(array($this, 'request_streams'), $args);
-                return $this->headers;
-            }
-
-            $headers = $this->parse_header_array($headers, $update_claimed_id);
-
-            # And restore them.
+            
+            $headers = get_headers($url . ($params ? '?' . $params : ''));
+            
+            // Restore the stream context options.
             stream_context_get_default($default);
+            
+            if (!empty($headers)) {
+                if (intval(substr($headers[0], strlen('HTTP/1.1 '))) == 405) {
+                    // The server doesn't support HEAD - emulate it with a GET.
+                    $args = func_get_args();
+                    $args[1] = 'GET';
+                    call_user_func_array(array($this, 'request_streams'), $args);
+                    $headers = $this->headers;
+                } else {
+                    $headers = $this->parse_header_array($headers, $update_claimed_id);
+                }
+            } else {
+                $headers = array();
+            }
+            
             return $headers;
         }
 
