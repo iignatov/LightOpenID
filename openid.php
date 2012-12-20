@@ -23,7 +23,8 @@ class LightOpenID
          , $oauth = array();
     private $identity, $claimed_id;
     protected $server, $version, $trustRoot, $aliases, $identifier_select = false
-            , $ax = false, $sreg = false, $setup_url = null, $headers = array(), $proxy = null;
+            , $ax = false, $sreg = false, $setup_url = null, $headers = array(), $proxy = null
+            , $xrds_override_pattern = array(), $xrds_override_replacement = array();
     static protected $ax_to_sreg = array(
         'namePerson/friendly'     => 'nickname',
         'contact/email'           => 'email',
@@ -81,6 +82,12 @@ class LightOpenID
         case 'trustRoot':
         case 'realm':
             $this->trustRoot = trim($value);
+            break;
+        case 'xrds_override': 
+            list($pattern, $replacement) = $value;
+            $this->xrds_override_pattern = $pattern;
+            $this->xrds_override_replacement = $replacement;
+            break;
         }
     }
 
@@ -478,6 +485,10 @@ class LightOpenID
 
         # A flag to disable yadis discovery in case of failure in headers.
         $yadis = true;
+        
+        # Allow optional regex replacement of url; for example to use Google Apps
+        # as an OpenID provider without touching domain hosting
+        $url = preg_replace($this->xrds_override_pattern, $this->xrds_override_replacement, $url);
 
         # We'll jump a maximum of 5 times, to avoid endless redirections.
         for ($i = 0; $i < 5; $i ++) {
