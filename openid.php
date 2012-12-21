@@ -4,7 +4,7 @@
  * 
  * It requires PHP >= 5.1.2 with cURL or HTTP/HTTPS stream wrappers enabled.
  *
- * @version v1.1.0 2012-12-02
+ * @version v1.1.1 2012-12-21
  * @link http://gitorious.org/lightopenid Official Repo
  * @link http://github.com/iignatov/LightOpenID GitHub Clone
  * @author Mewp
@@ -24,7 +24,7 @@ class LightOpenID
     private $identity, $claimed_id;
     protected $server, $version, $trustRoot, $aliases, $identifier_select = false
             , $ax = false, $sreg = false, $setup_url = null, $headers = array(), $proxy = null
-            , $xrds_override_pattern = array(), $xrds_override_replacement = array();
+            , $xrds_override_pattern = null, $xrds_override_replacement = null;
     static protected $ax_to_sreg = array(
         'namePerson/friendly'     => 'nickname',
         'contact/email'           => 'email',
@@ -83,10 +83,14 @@ class LightOpenID
         case 'realm':
             $this->trustRoot = trim($value);
             break;
-        case 'xrds_override': 
-            list($pattern, $replacement) = $value;
-            $this->xrds_override_pattern = $pattern;
-            $this->xrds_override_replacement = $replacement;
+        case 'xrdsOverride':
+            if (is_array($value)) {
+                list($pattern, $replacement) = $value;
+                $this->xrds_override_pattern = $pattern;
+                $this->xrds_override_replacement = $replacement;
+            } else {
+                trigger_error('Invalid value specified for "xrdsOverride".', E_USER_ERROR);
+            }
             break;
         }
     }
@@ -486,9 +490,11 @@ class LightOpenID
         # A flag to disable yadis discovery in case of failure in headers.
         $yadis = true;
         
-        # Allow optional regex replacement of url; for example to use Google Apps
-        # as an OpenID provider without touching domain hosting
-        $url = preg_replace($this->xrds_override_pattern, $this->xrds_override_replacement, $url);
+        # Allows optional regex replacement of the URL, e.g. to use Google Apps
+        # as an OpenID provider without setting up XRDS on the domain hosting.
+        if (!is_null($this->xrds_override_pattern) && !is_null($this->xrds_override_replacement)) {
+            $url = preg_replace($this->xrds_override_pattern, $this->xrds_override_replacement, $url);
+        }
 
         # We'll jump a maximum of 5 times, to avoid endless redirections.
         for ($i = 0; $i < 5; $i ++) {

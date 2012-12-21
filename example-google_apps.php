@@ -1,13 +1,20 @@
 <?php
-# Logging in with Google Apps accounts requires setting special identity (and xsrd override), so this example shows how to do it.
+# Logging in with Google Apps accounts requires setting special identity
+# and XRDS override, so this example shows how to do it.
 require 'openid.php';
+
 try {
-    # Change 'localhost' to your domain name.
-    $openid = new LightOpenID('localhost');
-    $openid->xrds_override = array('#^http://example.com/openid\?id=\d+$#', 'https://www.google.com/accounts/o8/site-xrds?hd=example.com');
-    if(!$openid->mode) {
-        if(isset($_GET['login'])) {
-            $openid->identity = 'https://www.google.com/accounts/o8/site-xrds?hd=example.com';
+    # Change 'example.org' to your domain name.
+    $domain = 'example.org';
+    $openid = new LightOpenID($domain);
+    $openid->xrdsOverride = array(
+        '#^http://' . $domain . '/openid\?id=\d+$#',
+        'https://www.google.com/accounts/o8/site-xrds?hd=' . $domain
+    );
+    
+    if (!$openid->mode) {
+        if (isset($_GET['login'])) {
+            $openid->identity = 'https://www.google.com/accounts/o8/site-xrds?hd=' . $domain;
             header('Location: ' . $openid->authUrl());
         }
 ?>

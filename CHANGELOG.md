@@ -1,6 +1,11 @@
 # LightOpenID Change Log
 
 
+## v1.1.1 (December 21, 2012)
+
+`add` Added support for overriding the initial URL XRDS lookup.  
+
+
 ## v1.1.0 (December 02, 2012)
 
 `add` Added support for connecting through a proxy.  
