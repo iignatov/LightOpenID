@@ -2,9 +2,9 @@
 
 Lightweight PHP5 library for easy OpenID authentication.
 
-* `Version....:` [**1.1.1** :arrow_double_down:][1]
+* `Version....:` [**1.1.2** :arrow_double_down:][1]
                  ( *see [the change log][2] for details* )
-* `Released on:` December 21, 2012
+* `Released on:` January 15, 2013
 * `Source code:` [Gitorious :link:][3]
                  &nbsp;
                  [GitHub :octocat:][4]
