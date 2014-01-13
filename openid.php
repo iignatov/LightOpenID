@@ -19,6 +19,7 @@ class LightOpenID
          , $verify_peer = null
          , $capath = null
          , $cainfo = null
+         , $cnmatch = null
          , $data
          , $oauth = array();
     private $identity, $claimed_id;
@@ -302,6 +303,10 @@ class LightOpenID
         if(!$this->hostExists($url)) {
             throw new ErrorException("Could not connect to $url.", 404);
         }
+        
+        if (empty($this->cnmatch)) {
+            $this->cnmatch = parse_url($url, PHP_URL_HOST);
+        }
 
         $params = http_build_query($params, '', '&');
         switch($method) {
@@ -311,9 +316,10 @@ class LightOpenID
                     'method' => 'GET',
                     'header' => 'Accept: application/xrds+xml, */*',
                     'ignore_errors' => true,
-                ), 'ssl' => array(
-                    'CN_match' => parse_url($url, PHP_URL_HOST),
                 ),
+                'ssl' => array(
+                    'CN_match' => $this->cnmatch
+                )
             );
             $url = $url . ($params ? '?' . $params : '');
             if (!empty($this->proxy)) {
@@ -327,9 +333,10 @@ class LightOpenID
                     'header'  => 'Content-type: application/x-www-form-urlencoded',
                     'content' => $params,
                     'ignore_errors' => true,
-                ), 'ssl' => array(
-                    'CN_match' => parse_url($url, PHP_URL_HOST),
                 ),
+                'ssl' => array(
+                    'CN_match' => $this->cnmatch
+                )
             );
             if (!empty($this->proxy)) {
                 $opts['http']['proxy'] = $this->proxy_url();
@@ -362,7 +369,7 @@ class LightOpenID
                     'ignore_errors' => true,
                 ),
                 'ssl' => array(
-                    'CN_match' => parse_url($url, PHP_URL_HOST)
+                    'CN_match' => $this->cnmatch
                 )
             );
             
