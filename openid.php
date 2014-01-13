@@ -426,12 +426,26 @@ class LightOpenID
 
     protected function request($url, $method='GET', $params=array(), $update_claimed_id=false)
     {
-        if (function_exists('curl_init')
-            && (!in_array('https', stream_get_wrappers()) || !ini_get('safe_mode') && !ini_get('open_basedir'))
-        ) {
-            return $this->request_curl($url, $method, $params, $update_claimed_id);
+        $must_use_curl = false;
+        
+        if (function_exists('curl_init')) {
+            if (!$must_use_curl) {
+                $must_use_curl = !ini_get('allow_url_fopen');
+            }
+            
+            if (!$must_use_curl) {
+                $must_use_curl = !in_array('https', stream_get_wrappers());
+            }
+            
+            if (!$must_use_curl) {
+                $must_use_curl = !(ini_get('safe_mode') || ini_get('open_basedir'));
+            }
         }
-        return $this->request_streams($url, $method, $params, $update_claimed_id);
+        
+        return
+            $must_use_curl
+                ? $this->request_curl($url, $method, $params, $update_claimed_id)
+                : $this->request_streams($url, $method, $params, $update_claimed_id);
     }
     
     protected function proxy_url()
