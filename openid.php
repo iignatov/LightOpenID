@@ -227,9 +227,10 @@ class LightOpenID
             }
 
             if($update_claimed_id) {
-                # Updating claimed_id in case of redirections.
+                # Update the claimed_id value in case of redirections.
                 $effective_url = curl_getinfo($curl, CURLINFO_EFFECTIVE_URL);
-                if($effective_url != $url) {
+                # Ignore the fragment (some cURL versions don't handle it well).
+                if (strtok($effective_url, '#') != strtok($url, '#')) {
                     $this->identity = $this->claimed_id = $effective_url;
                 }
             }
