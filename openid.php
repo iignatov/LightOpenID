@@ -52,6 +52,11 @@ class LightOpenID
             throw new ErrorException('You must have either https wrappers or curl enabled.');
         }
     }
+    
+    function __isset($name)
+    {
+        return in_array($name, array('identity', 'trustRoot', 'realm', 'xrdsOverride', 'mode'));
+    }
 
     function __set($name, $value)
     {
