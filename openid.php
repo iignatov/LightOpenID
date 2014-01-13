@@ -39,18 +39,7 @@ class LightOpenID
 
     function __construct($host, $proxy = null)
     {
-        $this->trustRoot = (strpos($host, '://') ? $host : 'http://' . $host);
-        if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off')
-            || (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
-            && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')
-        ) {
-            $this->trustRoot = (strpos($host, '://') ? $host : 'https://' . $host);
-        }
-
-        if(($host_end = strpos($this->trustRoot, '/', 8)) !== false) {
-            $this->trustRoot = substr($this->trustRoot, 0, $host_end);
-        }
-        
+        $this->set_realm($host);
         $this->set_proxy($proxy);
 
         $uri = rtrim(preg_replace('#((?<=\?)|&)openid\.[^&]+#', '', $_SERVER['REQUEST_URI']), '?');
@@ -109,6 +98,35 @@ class LightOpenID
         case 'mode':
             return empty($this->data['openid_mode']) ? null : $this->data['openid_mode'];
         }
+    }
+    
+    function set_realm($uri)
+    {
+        $realm = '';
+        
+        # Set a protocol, if not specified.
+        $realm .= (($offset = strpos($uri, '://')) === false) ? $this->get_realm_protocol() : '';
+        
+        # Set the offset properly.
+        $offset = (($offset !== false) ? $offset + 3 : 0);
+        
+        # Get only the root, without the path.
+        $realm .= (($end = strpos($uri, '/', $offset)) === false) ? $uri : substr($uri, 0, $end);
+        
+        $this->trustRoot = $realm;
+    }
+    
+    function get_realm_protocol()
+    {
+        if (!empty($_SERVER['HTTPS'])) {
+            $use_secure_protocol = ($_SERVER['HTTPS'] != 'off');
+        } else if (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+            $use_secure_protocol = ($_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https');
+        } else {
+            $use_secure_protocol = false;
+        }
+        
+        return $use_secure_protocol ? 'https://' : 'http://';
     }
     
     function set_proxy($proxy)
