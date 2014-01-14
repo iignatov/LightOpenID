@@ -9,7 +9,7 @@ Lightweight PHP5 library for easy OpenID authentication.
                  &nbsp;
                  [GitHub :octocat:][4]
 * `Homepage...:` http://code.google.com/p/lightopenid/
-* `Author.....:` Mewp (http://mewp.s4w.pl/)
+* `Author.....:` Mewp <mewp151 at gmail dot com>
 
 [1]: https://github.com/iignatov/LightOpenID/archive/master.zip
 [2]: http://github.com/iignatov/LightOpenID/blob/master/CHANGELOG.md
