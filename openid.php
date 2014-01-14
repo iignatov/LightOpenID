@@ -443,24 +443,27 @@ class LightOpenID
 
     protected function request($url, $method='GET', $params=array(), $update_claimed_id=false)
     {
-        $must_use_curl = false;
+        $use_curl = false;
         
         if (function_exists('curl_init')) {
-            if (!$must_use_curl) {
-                $must_use_curl = !ini_get('allow_url_fopen');
+            if (!$use_curl) {
+                # When allow_url_fopen is disabled, PHP streams will not work.
+                $use_curl = !ini_get('allow_url_fopen');
             }
             
-            if (!$must_use_curl) {
-                $must_use_curl = !in_array('https', stream_get_wrappers());
+            if (!$use_curl) {
+                # When there is no HTTPS wrapper, PHP streams cannott be used.
+                $use_curl = !in_array('https', stream_get_wrappers());
             }
             
-            if (!$must_use_curl) {
-                $must_use_curl = !(ini_get('safe_mode') || ini_get('open_basedir'));
+            if (!$use_curl) {
+                # With open_basedir or safe_mode set, cURL can't follow redirects.
+                $use_curl = !(ini_get('safe_mode') || ini_get('open_basedir'));
             }
         }
         
         return
-            $must_use_curl
+            $use_curl
                 ? $this->request_curl($url, $method, $params, $update_claimed_id)
                 : $this->request_streams($url, $method, $params, $update_claimed_id);
     }
