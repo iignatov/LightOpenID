@@ -190,7 +190,12 @@ class LightOpenID
         curl_setopt($curl, CURLOPT_HEADER, false);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, array('Accept: application/xrds+xml, */*'));
+        
+        if ($method == 'POST') {
+            curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-type: application/x-www-form-urlencoded'));
+        } else {
+            curl_setopt($curl, CURLOPT_HTTPHEADER, array('Accept: application/xrds+xml, */*'));
+        }
         
         if (!empty($this->proxy)) {
             curl_setopt($curl, CURLOPT_PROXY, $this->proxy['host']);
