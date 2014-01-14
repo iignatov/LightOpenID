@@ -24,7 +24,8 @@ class LightOpenID
          , $oauth = array();
     private $identity, $claimed_id;
     protected $server, $version, $trustRoot, $aliases, $identifier_select = false
-            , $ax = false, $sreg = false, $setup_url = null, $headers = array(), $proxy = null
+            , $ax = false, $sreg = false, $setup_url = null, $headers = array()
+            , $proxy = null, $user_agent = 'LightOpenID'
             , $xrds_override_pattern = null, $xrds_override_replacement = null;
     static protected $ax_to_sreg = array(
         'namePerson/friendly'     => 'nickname',
@@ -188,6 +189,7 @@ class LightOpenID
         $curl = curl_init($url . ($method == 'GET' && $params ? '?' . $params : ''));
         curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($curl, CURLOPT_HEADER, false);
+        curl_setopt($curl, CURLOPT_USERAGENT, $this->user_agent);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         
@@ -325,6 +327,7 @@ class LightOpenID
                 'http' => array(
                     'method' => 'GET',
                     'header' => 'Accept: application/xrds+xml, */*',
+                    'user_agent' => $this->user_agent,
                     'ignore_errors' => true,
                 ),
                 'ssl' => array(
@@ -341,6 +344,7 @@ class LightOpenID
                 'http' => array(
                     'method' => 'POST',
                     'header'  => 'Content-type: application/x-www-form-urlencoded',
+                    'user_agent' => $this->user_agent,
                     'content' => $params,
                     'ignore_errors' => true,
                 ),
@@ -366,6 +370,7 @@ class LightOpenID
             $default['http'] += array(
                 'method' => 'GET',
                 'header' => '',
+                'user_agent' => '',
                 'ignore_errors' => false
             );
             $default['ssl'] += array(
@@ -376,6 +381,7 @@ class LightOpenID
                 'http' => array(
                     'method' => 'HEAD',
                     'header' => 'Accept: application/xrds+xml, */*',
+                    'user_agent' => $this->user_agent,
                     'ignore_errors' => true,
                 ),
                 'ssl' => array(
