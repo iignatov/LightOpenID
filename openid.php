@@ -552,14 +552,7 @@ class LightOpenID
                     $next = true;
                 }
 
-                if (isset($headers['content-type'])
-                    && (strpos($headers['content-type'], 'application/xrds+xml') !== false
-                        || strpos($headers['content-type'], 'text/xml') !== false)
-                ) {
-                    # Apparently, some providers return XRDS documents as text/html.
-                    # While it is against the spec, allowing this here shouldn't break
-                    # compatibility with anything.
-                    # ---
+                if (isset($headers['content-type']) && $this->is_allowed_type($headers['content-type'])) {
                     # Found an XRDS document, now let's find the server, and optionally delegate.
                     $content = $this->request($url, 'GET');
 
@@ -663,6 +656,21 @@ class LightOpenID
             throw new ErrorException("No OpenID Server found at $url", 404);
         }
         throw new ErrorException('Endless redirection!', 500);
+    }
+    
+    protected function is_allowed_type($content_type) {
+        # Apparently, some providers return XRDS documents as text/html.
+        # While it is against the spec, allowing this here shouldn't break
+        # compatibility with anything.
+        $allowed_types = array('application/xrds+xml', 'text/html', 'text/xml');
+        
+        foreach ($allowed_types as $type) {
+            if (strpos($content_type, $type) !== false) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     protected function sregParams()
