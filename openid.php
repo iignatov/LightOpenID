@@ -107,35 +107,6 @@ class LightOpenID
         }
     }
     
-    function set_realm($uri)
-    {
-        $realm = '';
-        
-        # Set a protocol, if not specified.
-        $realm .= (($offset = strpos($uri, '://')) === false) ? $this->get_realm_protocol() : '';
-        
-        # Set the offset properly.
-        $offset = (($offset !== false) ? $offset + 3 : 0);
-        
-        # Get only the root, without the path.
-        $realm .= (($end = strpos($uri, '/', $offset)) === false) ? $uri : substr($uri, 0, $end);
-        
-        $this->trustRoot = $realm;
-    }
-    
-    function get_realm_protocol()
-    {
-        if (!empty($_SERVER['HTTPS'])) {
-            $use_secure_protocol = ($_SERVER['HTTPS'] != 'off');
-        } else if (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
-            $use_secure_protocol = ($_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https');
-        } else {
-            $use_secure_protocol = false;
-        }
-        
-        return $use_secure_protocol ? 'https://' : 'http://';
-    }
-    
     function set_proxy($proxy)
     {
         if (!empty($proxy)) {
@@ -181,6 +152,35 @@ class LightOpenID
         }
 
         return !!gethostbynamel($server);
+    }
+    
+    protected function set_realm($uri)
+    {
+        $realm = '';
+        
+        # Set a protocol, if not specified.
+        $realm .= (($offset = strpos($uri, '://')) === false) ? $this->get_realm_protocol() : '';
+        
+        # Set the offset properly.
+        $offset = (($offset !== false) ? $offset + 3 : 0);
+        
+        # Get only the root, without the path.
+        $realm .= (($end = strpos($uri, '/', $offset)) === false) ? $uri : substr($uri, 0, $end);
+        
+        $this->trustRoot = $realm;
+    }
+    
+    protected function get_realm_protocol()
+    {
+        if (!empty($_SERVER['HTTPS'])) {
+            $use_secure_protocol = ($_SERVER['HTTPS'] != 'off');
+        } else if (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+            $use_secure_protocol = ($_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https');
+        } else {
+            $use_secure_protocol = false;
+        }
+        
+        return $use_secure_protocol ? 'https://' : 'http://';
     }
 
     protected function request_curl($url, $method='GET', $params=array(), $update_claimed_id)
