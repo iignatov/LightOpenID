@@ -1,5 +1,17 @@
 # LightOpenID Change Log
 
+## v1.2.0 (January 14, 2014)
+
+`fix` Yahoo OpenID not working on newer versions of PHP/cURL.  
+`fix` A warning when the realm is shorter than 8 chars.  
+`fix` Use cURL when 'allow_url_fopen' is disabled.  
+`fix` Different POST-behavior when using cURL and streams.  
+`fix` Avoid hiding the real presence/absence of fields.  
+`add` Added User-Agent header for better compatibility.  
+`add` Added 'text/html' to the discovery content-types.  
+`add` Added support for Composer (dependency manager).  
+`add` Added ability to set the 'CN_match' SSL option.  
+
 
 ## v1.1.2 (January 15, 2013)
 
