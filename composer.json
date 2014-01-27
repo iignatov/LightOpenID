@@ -5,6 +5,7 @@
 	"keywords": ["openid", "authentication", "security"],
 	"homepage": "https://github.com/iignatov/LightOpenID",
 	"license": "MIT",
+	"version": "1.0.0",
 	"authors": [
 		{
 			"name": "Mewp",
