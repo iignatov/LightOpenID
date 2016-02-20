@@ -19,6 +19,22 @@ Lightweight PHP5 library for easy OpenID authentication.
 
 ## Quick start
 
+### Add to composer.json
+
+```javascript
+"repositories": [
+  {
+    "type": "vcs",
+    "url": "https://github.com/iignatov/LightOpenID"
+  }
+],
+
+"require": {	
+  "php": ">=5.4.0",
+  "iignatov/lightopenid": "*"
+}
+```
+
 ### Sign-on with OpenID in just 2 steps:
   
   1. Authentication with the provider:
