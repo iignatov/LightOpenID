@@ -1,3 +1,7 @@
+> **NOTICE**
+
+> I am no longer able to support or maintain this project - if you would like to take over the project, please drop me a line.
+
 # LightOpenID
 
 Lightweight PHP5 library for easy OpenID authentication.
