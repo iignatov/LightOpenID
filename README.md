@@ -2,19 +2,17 @@
 
 Lightweight PHP5 library for easy OpenID authentication.
 
-* `Version....:` [**1.2.0** :arrow_double_down:][1]
+* `Version....:` [**1.3.0** :arrow_double_down:][1]
                  ( *see [the change log][2] for details* )
-* `Released on:` January 14, 2014
-* `Source code:` [Gitorious :link:][3]
-                 &nbsp;
-                 [GitHub :octocat:][4]
+* `Released on:` February 20, 2016
+* `Source code:` [Official GitHub Repo :octocat:][3]
 * `Homepage...:` http://code.google.com/p/lightopenid/
-* `Author.....:` Mewp <mewp151 at gmail dot com>
+* `Author.....:` [Mewp][4]
 
 [1]: https://github.com/iignatov/LightOpenID/archive/master.zip
 [2]: https://github.com/iignatov/LightOpenID/blob/master/CHANGELOG.md
-[3]: https://gitorious.org/lightopenid
-[4]: https://github.com/iignatov/LightOpenID
+[3]: https://github.com/Mewp/lightopenid
+[4]: https://github.com/Mewp
 
 
 ## Quick start
