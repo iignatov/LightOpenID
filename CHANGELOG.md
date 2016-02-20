@@ -1,5 +1,11 @@
 # LightOpenID Change Log
 
+## v1.3.0 (February 20, 2016)
+
+`fix` Fixed a probable endless redirection.  
+`add` Added support for IBM WSSC (a WebSphere product that acts as a reverse proxy).  
+`add` Added cURL timeouts for OpenID.  
+
 ## v1.2.0 (January 14, 2014)
 
 `fix` Yahoo OpenID not working on newer versions of PHP/cURL.  
