@@ -176,8 +176,10 @@ class LightOpenID
             $use_secure_protocol = ($_SERVER['HTTPS'] != 'off');
         } else if (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
             $use_secure_protocol = ($_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https');
+        } else if (isset($_SERVER['HTTP__WSSC'])) {
+            $use_secure_protocol = ($_SERVER['HTTP__WSSC'] == 'https');
         } else {
-            $use_secure_protocol = false;
+                $use_secure_protocol = false;
         }
         
         return $use_secure_protocol ? 'https://' : 'http://';
