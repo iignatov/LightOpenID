@@ -683,7 +683,13 @@ class LightOpenID
         # Apparently, some providers return XRDS documents as text/html.
         # While it is against the spec, allowing this here shouldn't break
         # compatibility with anything.
-        $allowed_types = array('application/xrds+xml', 'text/html', 'text/xml');
+        $allowed_types = array('application/xrds+xml', 'text/xml');
+        
+        # Only allow text/html content type for the Yahoo logins, since
+        # it might cause an endless redirection for the other providers.
+        if (get_provider_name($this->claimed_id) == 'yahoo') {
+            $allowed_types[] = 'text/html';
+        }
         
         foreach ($allowed_types as $type) {
             if (strpos($content_type, $type) !== false) {
@@ -692,6 +698,23 @@ class LightOpenID
         }
         
         return false;
+    }
+    
+    protected function get_provider_name($provider_url) {
+    	$result = '';
+    	
+    	if (!empty($provider_url)) {
+    		$tokens = array_reverse(
+    			explode('.', parse_url($provider_url, PHP_URL_HOST))
+    		);
+    		$result = strtolower(
+    			(count($tokens) > 1 && strlen($tokens[1]) > 3)
+    				? $tokens[1]
+    				: (count($tokens) > 2 ? $tokens[2] : '')
+    		);
+    	}
+    	
+    	return $result;
     }
 
     protected function sregParams()
