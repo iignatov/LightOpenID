@@ -687,7 +687,7 @@ class LightOpenID
         
         # Only allow text/html content type for the Yahoo logins, since
         # it might cause an endless redirection for the other providers.
-        if (get_provider_name($this->claimed_id) == 'yahoo') {
+        if ($this->get_provider_name($this->claimed_id) == 'yahoo') {
             $allowed_types[] = 'text/html';
         }
         
