@@ -1,5 +1,9 @@
 # LightOpenID Change Log
 
+## v1.3.1 (March 04, 2016)
+
+`fix` Fixed an incorrect function call to get_provider_name().  
+
 ## v1.3.0 (February 20, 2016)
 
 `fix` Fixed a probable endless redirection.  
