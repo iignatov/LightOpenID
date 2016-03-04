@@ -6,9 +6,9 @@
 
 Lightweight PHP5 library for easy OpenID authentication.
 
-* `Version....:` [**1.3.0** :arrow_double_down:][1]
+* `Version....:` [**1.3.1** :arrow_double_down:][1]
                  ( *see [the change log][2] for details* )
-* `Released on:` February 20, 2016
+* `Released on:` March 04, 2016
 * `Source code:` [Official GitHub Repo :octocat:][3]
 * `Homepage...:` http://code.google.com/p/lightopenid/
 * `Author.....:` [Mewp][4]
