@@ -630,7 +630,6 @@ class LightOpenID
                     $yadis = false;
                     $url = $originalUrl;
                     $content = null;
-                    break;
                 }
                 if ($next) continue;
 
