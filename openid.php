@@ -926,7 +926,7 @@ class LightOpenID
 
         $response = $this->request($server, 'POST', $params);
 
-        return preg_match('/is_valid\s*:\s*true/i', $response);
+        return preg_match('/is_valid\s*:\s*true/i', $response) === 1;
     }
 
     protected function getAxAttributes()
