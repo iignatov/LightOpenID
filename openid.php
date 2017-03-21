@@ -31,6 +31,8 @@ class LightOpenID
             , $xrds_override_pattern = null, $xrds_override_replacement = null;
     static protected $ax_to_sreg = array(
         'namePerson/friendly'     => 'nickname',
+        'namePerson/first'		  => 'firstname',
+        'namePerson/last'		  => 'lastname',
         'contact/email'           => 'email',
         'namePerson'              => 'fullname',
         'birthDate'               => 'dob',
@@ -228,6 +230,13 @@ class LightOpenID
                 curl_setopt($curl, CURLOPT_CAINFO, $this->cainfo);
             }
         }
+		curl_setopt($curl,CURLOPT_SSL_CIPHER_LIST, 'TLSv1');
+		//curl_setopt($curl, CURLOPT_SSLVERSION, 1);
+		//curl_setopt($curl, CURLOPT_SSL_CIPHER_LIST, 'SSLv3');
+		//curl_setopt($curl, CURLOPT_SSLVERSION, 4);
+		//curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+		//curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
+		//curl_setopt($curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
 
         if ($method == 'POST') {
             curl_setopt($curl, CURLOPT_POST, true);
